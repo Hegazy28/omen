@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:omen/component/bg.dart';
+import 'package:omen/core/myAssets.dart';
 import 'package:omen/ui/home.dart';
 
 void main() {
@@ -14,20 +15,18 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      // theme: ThemeData(
+      //   colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      //   useMaterial3: true,
+      // ),
       home: Scaffold(
-          appBar: AppBar(
-            title: const Text('Omen'),
-          ),
+          // appBar: AppBar(
+          //   title: const Text('Omen'),
+          //   backgroundColor: Colors.transparent,
+          // ),
           body: Stack(
-            children: [
-              const WinterBackground(), // fills the bg
-              // your task UI here
-            ],
-          )),
+        children: [const WinterBackground(), Home()],
+      )),
     );
   }
 }
