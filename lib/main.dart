@@ -13,20 +13,21 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      // theme: ThemeData(
-      //   colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      //   useMaterial3: true,
-      // ),
-      home: Scaffold(
+        debugShowCheckedModeBanner: false,
+        title: 'Flutter Demo',
+        // theme: ThemeData(
+        //   colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        //   useMaterial3: true,
+        // ),
+        home: Scaffold(
           // appBar: AppBar(
           //   title: const Text('Omen'),
           //   backgroundColor: Colors.transparent,
           // ),
-          body: Stack(
-        children: [const WinterBackground(), Home()],
-      )),
-    );
+          body: Stack(children: [
+            const WinterBackground(),
+            Home(),
+          ]),
+        ));
   }
 }
