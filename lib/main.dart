@@ -2,8 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:omen/component/bg.dart';
 import 'package:omen/core/myAssets.dart';
 import 'package:omen/ui/home.dart';
+import 'package:window_manager/window_manager.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+  windowManager.waitUntilReadyToShow().then((_) async {
+    await windowManager.maximize();
+    await windowManager.show();
+    await windowManager.focus();
+    await windowManager.setResizable(false);
+    //await windowManager.setMinimumSize(const Size(1000, 700));
+  });
   runApp(const MyApp());
 }
 
@@ -23,6 +33,8 @@ class MyApp extends StatelessWidget {
           // appBar: AppBar(
           //   title: const Text('Omen'),
           //   backgroundColor: Colors.transparent,
+          //   elevation: 0,
+          //   foregroundColor: Colors.red,
           // ),
           body: Stack(children: [
             const WinterBackground(),
