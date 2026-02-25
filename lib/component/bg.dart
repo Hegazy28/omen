@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:omen/core/myColors.dart';
 
 // ─────────────────────────────────────────────
 //  USAGE:
@@ -158,71 +159,74 @@ class _WinterBackgroundState extends State<WinterBackground>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([
-        _auroraController,
-        _orb1Controller,
-        _orb2Controller,
-        _orb3Controller,
-        _waveController,
-        _sparkleController,
-        _fogController,
-      ]),
-      builder: (context, _) {
-        final size = MediaQuery.of(context).size;
-        return Stack(
-          children: [
-            _buildSky(),
-            _buildAuroraBands(size),
-            _buildStars(),
-            _buildOrb(
-              controller: _orb1Controller,
-              color: const Color(0xFF1E90FF),
-              startX: 0.15,
-              startY: 0.22,
-              endX: 0.25,
-              endY: 0.30,
-              radius: size.width * 0.38,
-              opacity: 0.13,
-            ),
-            _buildOrb(
-              controller: _orb2Controller,
-              color: const Color(0xFF00BFFF),
-              startX: 0.70,
-              startY: 0.15,
-              endX: 0.80,
-              endY: 0.28,
-              radius: size.width * 0.42,
-              opacity: 0.10,
-            ),
-            _buildOrb(
-              controller: _orb3Controller,
-              color: const Color(0xFF87CEEB),
-              startX: 0.45,
-              startY: 0.50,
-              endX: 0.55,
-              endY: 0.60,
-              radius: size.width * 0.30,
-              opacity: 0.08,
-            ),
-            _buildFog(size),
-            CustomPaint(
-              painter: SnowPainter(flakes: _flakes),
-              child: const SizedBox.expand(),
-            ),
-            CustomPaint(
-              painter: SparklePainter(
-                crystals: _crystals,
-                time: _sparkleController.value,
+    return Container(
+      decoration: const BoxDecoration(gradient: Mycolors.primaryGradient),
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          _auroraController,
+          _orb1Controller,
+          _orb2Controller,
+          _orb3Controller,
+          _waveController,
+          _sparkleController,
+          _fogController,
+        ]),
+        builder: (context, _) {
+          final size = MediaQuery.of(context).size;
+          return Stack(
+            children: [
+              _buildSky(),
+              _buildAuroraBands(size),
+              _buildStars(),
+              _buildOrb(
+                controller: _orb1Controller,
+                color: const Color(0xFF1E90FF),
+                startX: 0.15,
+                startY: 0.22,
+                endX: 0.25,
+                endY: 0.30,
+                radius: size.width * 0.38,
+                opacity: 0.13,
               ),
-              child: const SizedBox.expand(),
-            ),
-            _buildFrostWave(size),
-            _buildVignette(),
-            if (widget.child != null) widget.child!,
-          ],
-        );
-      },
+              _buildOrb(
+                controller: _orb2Controller,
+                color: const Color(0xFF00BFFF),
+                startX: 0.70,
+                startY: 0.15,
+                endX: 0.80,
+                endY: 0.28,
+                radius: size.width * 0.42,
+                opacity: 0.10,
+              ),
+              _buildOrb(
+                controller: _orb3Controller,
+                color: const Color(0xFF87CEEB),
+                startX: 0.45,
+                startY: 0.50,
+                endX: 0.55,
+                endY: 0.60,
+                radius: size.width * 0.30,
+                opacity: 0.08,
+              ),
+              _buildFog(size),
+              CustomPaint(
+                painter: SnowPainter(flakes: _flakes),
+                child: const SizedBox.expand(),
+              ),
+              CustomPaint(
+                painter: SparklePainter(
+                  crystals: _crystals,
+                  time: _sparkleController.value,
+                ),
+                child: const SizedBox.expand(),
+              ),
+              _buildFrostWave(size),
+              _buildVignette(),
+              if (widget.child != null) widget.child!,
+            ],
+          );
+        },
+      ),
     );
   }
 
