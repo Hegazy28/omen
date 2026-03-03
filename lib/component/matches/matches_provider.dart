@@ -2,7 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omen/component/matches/match_model.dart';
-import 'package:omen/component/matches/matches_sample_data.dart';
+import 'package:omen/component/matches/data/matches_sample_data.dart';
 
 // ── Source of truth ───────────────────────────────────────
 
