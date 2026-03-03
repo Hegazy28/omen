@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:omen/core/myAssets.dart';
 import 'package:omen/core/myColors.dart';
 import 'package:omen/core/myFonts.dart';
 
