@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omen/component/matches/data/sportsrc_matches_service.dart';
 import 'package:omen/component/matches/match_model.dart';
+import 'package:omen/component/matches/matches_sample_data.dart';
 
 class MatchesNotifier extends Notifier<List<MatchModel>> {
   final _service = SportsrcMatchesService();
@@ -8,15 +9,17 @@ class MatchesNotifier extends Notifier<List<MatchModel>> {
   @override
   List<MatchModel> build() {
     Future.microtask(_refreshFromApi);
-    return const [];
+    return buildSampleMatches();
   }
 
   Future<void> _refreshFromApi() async {
     try {
       final remoteMatches = await _service.fetchMatches();
-      state = remoteMatches;
+      if (remoteMatches.isNotEmpty) {
+        state = remoteMatches;
+      }
     } catch (_) {
-      state = const [];
+      // keep sample fallback when API is unavailable in environment
     }
   }
 }
@@ -63,23 +66,6 @@ final finishedMatchesProvider = Provider<List<MatchModel>>((ref) => ref
     .watch(todayMatchesProvider)
     .where((m) => m.status == MatchStatus.finished)
     .toList());
-
-
-final yesterdayMatchesProvider = Provider<List<MatchModel>>((ref) {
-  final matches = ref.watch(matchesProvider);
-  final now = DateTime.now();
-  final yesterday = DateTime(now.year, now.month, now.day).subtract(
-    const Duration(days: 1),
-  );
-
-  return matches
-      .where((m) =>
-          m.kickoff.year == yesterday.year &&
-          m.kickoff.month == yesterday.month &&
-          m.kickoff.day == yesterday.day)
-      .toList()
-    ..sort((a, b) => b.kickoff.compareTo(a.kickoff));
-});
 
 final barcaUpcomingProvider = Provider<List<MatchModel>>((ref) {
   final matches = ref.watch(matchesProvider);

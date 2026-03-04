@@ -236,19 +236,52 @@ class _SurahDetail extends ConsumerWidget {
             color: QuranColors.border2,
             margin: const EdgeInsets.symmetric(horizontal: 14)),
         Expanded(
-          child: ayatAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            error: (_, __) => Center(
-              child: Text('تعذر تحميل السورة حالياً',
-                  style: QuranTextStyles.body(13, color: QuranColors.text3)),
-            ),
-            data: (ayat) {
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
+            itemCount: ayatAsync.maybeWhen(data: (ayat) => ayat.isEmpty ? 1 : ayat.length + (surah.id != 9 ? 1 : 0), orElse: () => 1),
+            itemBuilder: (_, i) {
+              final ayat = ayatAsync.valueOrNull ?? const <AyahModel>[];
+              // Basmala row
+              if (surah.id != 9 && i == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Text(
+                    'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    style: QuranTextStyles.quranText.copyWith(
+                      fontSize: 20,
+                      color: QuranColors.gold,
+                      shadows: [
+                        Shadow(
+                          color: QuranColors.gold.withOpacity(0.2),
+                          blurRadius: 12,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              final ayahIndex = surah.id != 9 ? i - 1 : i;
+
+              if (ayatAsync.isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              }
+
               if (ayat.isEmpty) {
                 return Center(
-                  child: Text('لا توجد آيات متاحة حالياً',
-                      style: QuranTextStyles.body(13, color: QuranColors.text3)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Text('لا توجد آيات متاحة حالياً',
+                        style:
+                            QuranTextStyles.body(13, color: QuranColors.text3)),
+                  ),
                 );
               }
 

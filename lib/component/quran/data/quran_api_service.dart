@@ -11,10 +11,6 @@ class QuranApiService {
       throw Exception('Failed to fetch surah $surahId');
     }
 
-    if (response.body.trim().isEmpty) {
-      return const [];
-    }
-
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     final data = decoded['data'] as Map<String, dynamic>?;
     final ayahs = data?['ayahs'] as List<dynamic>? ?? [];
@@ -33,15 +29,10 @@ class QuranApiService {
 
   Future<AyahOfDay> fetchAyahOfTheDay() async {
     final number = DateTime.now().difference(DateTime(2024)).inDays % 6236 + 1;
-    final url =
-        Uri.parse('https://api.alquran.cloud/v1/ayah/$number/ar.alafasy');
+    final url = Uri.parse('https://api.alquran.cloud/v1/ayah/$number/ar.alafasy');
     final response = await http.get(url);
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch ayah of the day');
-    }
-
-    if (response.body.trim().isEmpty) {
-      throw Exception('Empty ayah response');
     }
 
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;

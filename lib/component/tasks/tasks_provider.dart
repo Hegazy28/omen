@@ -29,26 +29,6 @@ class TasksNotifier extends Notifier<List<TaskModel>> {
     return kSampleTasks;
   }
 
-  void addTask({
-    required String title,
-    String? subtitle,
-    required String time,
-    required TaskPriority priority,
-    required TaskSection section,
-  }) {
-    final newTask = TaskModel(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      title: title.trim(),
-      subtitle: subtitle?.trim().isEmpty == true ? null : subtitle?.trim(),
-      time: time,
-      priority: priority,
-      section: section,
-    );
-
-    state = [...state, newTask];
-    _save(state);
-  }
-
   void toggleCompleted(String id) {
     state = [
       for (final task in state)
