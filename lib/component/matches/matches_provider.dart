@@ -30,7 +30,7 @@ enum MatchViewScope { all, important }
 enum MatchLeagueCategory { all, laLiga, premierLeague }
 
 final matchViewScopeProvider =
-    StateProvider<MatchViewScope>((_) => MatchViewScope.important);
+    StateProvider<MatchViewScope>((_) => MatchViewScope.all);
 final matchLeagueCategoryProvider =
     StateProvider<MatchLeagueCategory>((_) => MatchLeagueCategory.all);
 

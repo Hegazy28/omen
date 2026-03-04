@@ -282,6 +282,8 @@ class _AddTaskDialog extends ConsumerStatefulWidget {
 class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
   final _titleController = TextEditingController();
   final _subtitleController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _commentController = TextEditingController();
   final _timeController = TextEditingController(text: '09:00 AM');
   TaskPriority _priority = TaskPriority.medium;
   TaskSection _section = TaskSection.morning;
@@ -290,6 +292,8 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
   void dispose() {
     _titleController.dispose();
     _subtitleController.dispose();
+    _notesController.dispose();
+    _commentController.dispose();
     _timeController.dispose();
     super.dispose();
   }
@@ -329,6 +333,25 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
                 decoration:
                     const InputDecoration(labelText: 'Subtitle (optional)'),
                 textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _notesController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Notes',
+                  hintText: 'Add details for this task...',
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _commentController,
+                decoration: const InputDecoration(
+                  labelText: 'Initial comment (optional)',
+                  hintText: 'Add one comment now...',
+                ),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -386,7 +409,7 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
                   border: Border.all(color: TaskColors.glassBorder),
                 ),
                 child: Text(
-                  'Preview: ${_titleController.text.trim().isEmpty ? 'New task' : _titleController.text.trim()} • ${_timeController.text} • ${_section.name} • ${_priority.name}',
+                  'Preview: ${_titleController.text.trim().isEmpty ? 'New task' : _titleController.text.trim()} • ${_timeController.text} • ${_section.name} • ${_priority.name} • ${_notesController.text.trim().isEmpty ? 'no notes' : 'with notes'} • ${_commentController.text.trim().isEmpty ? 'no comments' : '1 comment'}',
                   style: TaskTextStyles.body(11, color: TaskColors.text2),
                 ),
               ),
@@ -412,6 +435,10 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
             ref.read(tasksProvider.notifier).addTask(
                   title: title,
                   subtitle: _subtitleController.text.trim(),
+                  notes: _notesController.text.trim(),
+                  comments: _commentController.text.trim().isEmpty
+                      ? const []
+                      : [_commentController.text.trim()],
                   time: _timeController.text.trim().isEmpty
                       ? '09:00 AM'
                       : _timeController.text.trim(),

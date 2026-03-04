@@ -339,11 +339,25 @@ class SportsrcMatchesService {
 
   MatchCompetition _competitionFrom(String raw) {
     final value = raw.toLowerCase();
-    if (value.contains('premier')) return MatchCompetition.premierLeague;
+
+    final isPremier = value.contains('premier') ||
+        value.contains('english league') ||
+        value.contains('epl') ||
+        value.contains('eng.1') ||
+        value.contains('pl ');
+    if (isPremier) return MatchCompetition.premierLeague;
+
+    final isLaLiga = value.contains('la liga') ||
+        value.contains('laliga') ||
+        value.contains('primera') ||
+        value.contains('spanish league') ||
+        value.contains('esp.1') ||
+        value.contains('liga');
+    if (isLaLiga) return MatchCompetition.laLiga;
+
     if (value.contains('champions')) return MatchCompetition.championsLeague;
     if (value.contains('copa')) return MatchCompetition.copaDelRey;
     if (value.contains('super')) return MatchCompetition.supercopa;
-    if (value.contains('liga')) return MatchCompetition.laLiga;
     if (value.contains('friend')) return MatchCompetition.friendly;
     return MatchCompetition.friendly;
   }

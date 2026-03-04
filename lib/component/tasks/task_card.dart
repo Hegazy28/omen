@@ -193,6 +193,16 @@ class _TaskCardState extends State<TaskCard>
                                         color: TaskColors.text3),
                                   ),
                                 ],
+                                if (widget.task.notes != null && widget.task.notes!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.task.notes!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TaskTextStyles.body(10,
+                                        color: TaskColors.text2),
+                                  ),
+                                ],
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
@@ -207,6 +217,14 @@ class _TaskCardState extends State<TaskCard>
                                       color: _priorityColor,
                                       dot: true,
                                     ),
+                                    if (widget.task.comments.isNotEmpty) ...[
+                                      const SizedBox(width: 5),
+                                      MetaChip(
+                                        label: '${widget.task.comments.length} comment${widget.task.comments.length > 1 ? 's' : ''}',
+                                        color: TaskColors.text3,
+                                        icon: Icons.chat_bubble_outline_rounded,
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ],

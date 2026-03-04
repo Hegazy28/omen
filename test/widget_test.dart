@@ -7,7 +7,9 @@ void main() {
       id: 't1',
       title: 'Read Quran',
       subtitle: 'Surah Al-Kahf',
-      time: '08:00',
+      notes: 'Read with tafsir for better understanding.',
+      comments: ['Start after Fajr', 'Review notes at night'],
+      time: '8:00 AM',
       priority: TaskPriority.high,
       section: TaskSection.morning,
       isCompleted: true,
@@ -20,6 +22,8 @@ void main() {
     expect(restored.id, task.id);
     expect(restored.title, task.title);
     expect(restored.subtitle, task.subtitle);
+    expect(restored.notes, task.notes);
+    expect(restored.comments, task.comments);
     expect(restored.time, task.time);
     expect(restored.priority, task.priority);
     expect(restored.section, task.section);
