@@ -1,15 +1,3 @@
-// lib/features/tasks/widgets/tasks_widget.dart
-//
-// DROP-IN USAGE:
-//
-//   import 'package:your_app/features/tasks/tasks.dart';
-//
-//   // Inside any widget tree (must be inside a ProviderScope):
-//   const TasksWidget()
-//
-// The widget fills its parent. Wrap it in a SizedBox or Expanded
-// to control its bounds within your layout.
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,22 +21,17 @@ class TasksWidget extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Top bar ──────────────────────────────────
         _TopBar(
           completedCount: completed,
           totalCount: allTasks.length,
         ),
         const SizedBox(height: 16),
-
-        // ── Progress bar ─────────────────────────────
         TasksProgressBar(
           progress: progress,
           completed: completed,
           total: allTasks.length,
         ),
         const SizedBox(height: 16),
-
-        // ── 3 period columns ─────────────────────────
         Expanded(
           child: _ColumnsRow(grouped: grouped),
         ),
@@ -56,8 +39,6 @@ class TasksWidget extends ConsumerWidget {
     );
   }
 }
-
-// ── Top bar ───────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
   final int completedCount;
@@ -72,34 +53,33 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Title
         Text('My Tasks', style: TaskTextStyles.heading(22)),
         const SizedBox(width: 12),
         Text(
           '$completedCount / $totalCount',
           style: TaskTextStyles.mono(13, color: TaskColors.text3),
         ),
-
         const Spacer(),
-
-        // Filter chips
         const TasksFilterBar(),
         const SizedBox(width: 12),
-
-        // Add button
-        _AddButton(),
+        const _AddButton(),
       ],
     );
   }
 }
 
-class _AddButton extends StatelessWidget {
+class _AddButton extends ConsumerWidget {
+  const _AddButton();
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         HapticFeedback.lightImpact();
-        // TODO: wire up your add-task flow here
+        await showDialog<void>(
+          context: context,
+          builder: (_) => const _AddTaskDialog(),
+        );
       },
       child: Container(
         height: 34,
@@ -138,7 +118,148 @@ class _AddButton extends StatelessWidget {
   }
 }
 
-// ── Three-column row ──────────────────────────────────────
+class _AddTaskDialog extends ConsumerStatefulWidget {
+  const _AddTaskDialog();
+
+  @override
+  ConsumerState<_AddTaskDialog> createState() => _AddTaskDialogState();
+}
+
+class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
+  final _titleController = TextEditingController();
+  final _subtitleController = TextEditingController();
+  final _timeController = TextEditingController(text: '09:00 AM');
+  TaskPriority _priority = TaskPriority.medium;
+  TaskSection _section = TaskSection.morning;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _subtitleController.dispose();
+    _timeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (picked == null) return;
+
+    final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+    final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+    final minute = picked.minute.toString().padLeft(2, '0');
+    _timeController.text = '$hour:$minute $period';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add Task'),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _subtitleController,
+                decoration:
+                    const InputDecoration(labelText: 'Subtitle (optional)'),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _timeController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Time (hh:mm AM/PM)',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.access_time_rounded),
+                    onPressed: _pickTime,
+                  ),
+                ),
+                onTap: _pickTime,
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<TaskPriority>(
+                value: _priority,
+                decoration: const InputDecoration(labelText: 'Priority'),
+                items: TaskPriority.values
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(item.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _priority = value);
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<TaskSection>(
+                value: _section,
+                decoration: const InputDecoration(labelText: 'Section'),
+                items: TaskSection.values
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(item.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _section = value);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final title = _titleController.text.trim();
+            if (title.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Title is required')),
+              );
+              return;
+            }
+
+            ref.read(tasksProvider.notifier).addTask(
+                  title: title,
+                  subtitle: _subtitleController.text.trim(),
+                  time: _timeController.text.trim().isEmpty
+                      ? '09:00 AM'
+                      : _timeController.text.trim(),
+                  priority: _priority,
+                  section: _section,
+                );
+            Navigator.of(context).pop();
+          },
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+}
 
 class _ColumnsRow extends StatelessWidget {
   final Map<TaskSection, List<TaskModel>> grouped;
@@ -153,7 +274,6 @@ class _ColumnsRow extends StatelessWidget {
         final tasks = grouped[section] ?? [];
         return Expanded(
           child: Padding(
-            // gap between columns
             padding: EdgeInsets.only(
               right: section != TaskSection.values.last ? 14 : 0,
             ),
