@@ -10,12 +10,16 @@ class TaskCard extends StatefulWidget {
   final TaskModel task;
   final VoidCallback onToggle;
   final VoidCallback onStar;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const TaskCard({
     super.key,
     required this.task,
     required this.onToggle,
     required this.onStar,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -230,6 +234,35 @@ class _TaskCardState extends State<TaskCard>
                               ],
                             ),
                           ),
+
+                          if (widget.onEdit != null || widget.onDelete != null)
+                            PopupMenuButton<String>(
+                              padding: EdgeInsets.zero,
+                              iconSize: 18,
+                              icon: const Icon(
+                                Icons.more_horiz_rounded,
+                                color: TaskColors.text3,
+                              ),
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  widget.onEdit?.call();
+                                } else if (value == 'delete') {
+                                  widget.onDelete?.call();
+                                }
+                              },
+                              itemBuilder: (_) => [
+                                if (widget.onEdit != null)
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('Edit task'),
+                                  ),
+                                if (widget.onDelete != null)
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text('Delete task'),
+                                  ),
+                              ],
+                            ),
 
                           // Star
                           GestureDetector(

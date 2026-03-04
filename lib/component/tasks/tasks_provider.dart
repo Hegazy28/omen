@@ -104,6 +104,11 @@ class TasksNotifier extends Notifier<List<TaskModel>> {
     _save(state);
   }
 
+  void removeTask(String id) {
+    state = state.where((task) => task.id != id).toList();
+    _save(state);
+  }
+
   void _save(List<TaskModel> tasks) {
     _box.put('tasks', tasks.map((task) => task.toMap()).toList());
   }
