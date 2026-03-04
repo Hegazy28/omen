@@ -77,15 +77,32 @@ final tasksProvider = NotifierProvider<TasksNotifier, List<TaskModel>>(
   TasksNotifier.new,
 );
 
+final taskFilterProvider = StateProvider<TaskFilter>((_) => TaskFilter.all);
+final taskSearchQueryProvider = StateProvider<String>((_) => '');
+final taskPriorityFilterProvider = StateProvider<TaskPriority?>((_) => null);
+final taskSectionFocusProvider = StateProvider<TaskSection?>((_) => null);
+
 final filteredTasksProvider = Provider<List<TaskModel>>((ref) {
   final tasks = ref.watch(tasksProvider);
-  final filter = ref.watch(taskFilterProvider);
+  final baseFilter = ref.watch(taskFilterProvider);
+  final query = ref.watch(taskSearchQueryProvider).trim().toLowerCase();
+  final priority = ref.watch(taskPriorityFilterProvider);
+  final section = ref.watch(taskSectionFocusProvider);
 
-  return switch (filter) {
+  final byStatus = switch (baseFilter) {
     TaskFilter.active => tasks.where((t) => !t.isCompleted).toList(),
     TaskFilter.done => tasks.where((t) => t.isCompleted).toList(),
     TaskFilter.all => tasks,
   };
+
+  return byStatus.where((task) {
+    final matchesQuery = query.isEmpty ||
+        task.title.toLowerCase().contains(query) ||
+        (task.subtitle?.toLowerCase().contains(query) ?? false);
+    final matchesPriority = priority == null || task.priority == priority;
+    final matchesSection = section == null || task.section == section;
+    return matchesQuery && matchesPriority && matchesSection;
+  }).toList();
 });
 
 final groupedTasksProvider = Provider<Map<TaskSection, List<TaskModel>>>((ref) {
@@ -102,7 +119,5 @@ final taskProgressProvider = Provider<double>((ref) {
   if (tasks.isEmpty) return 0;
   return tasks.where((t) => t.isCompleted).length / tasks.length;
 });
-
-final taskFilterProvider = StateProvider<TaskFilter>((_) => TaskFilter.all);
 
 enum TaskFilter { all, active, done }
