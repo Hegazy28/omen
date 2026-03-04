@@ -188,11 +188,10 @@ class _SurahDetail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ayat = ref.watch(activeSurahAyatProvider);
+    final ayatAsync = ref.watch(activeSurahAyatProvider);
 
     return Column(
       children: [
-        // Back + header
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
           child: Row(
@@ -213,8 +212,6 @@ class _SurahDetail extends ConsumerWidget {
             ],
           ),
         ),
-
-        // Surah header
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 14),
           child: Column(
@@ -234,93 +231,96 @@ class _SurahDetail extends ConsumerWidget {
             ],
           ),
         ),
-
         Container(
             height: 1,
             color: QuranColors.border2,
             margin: const EdgeInsets.symmetric(horizontal: 14)),
-
-        // Ayat list
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
-            itemCount: ayat.isEmpty ? 1 : ayat.length + (surah.id != 9 ? 1 : 0),
-            itemBuilder: (_, i) {
-              // Basmala row
-              if (surah.id != 9 && i == 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Text(
-                    'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
-                    textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
-                    style: QuranTextStyles.quranText.copyWith(
-                      fontSize: 20,
-                      color: QuranColors.gold,
-                      shadows: [
-                        Shadow(
-                          color: QuranColors.gold.withOpacity(0.2),
-                          blurRadius: 12,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              final ayahIndex = surah.id != 9 ? i - 1 : i;
-
+          child: ayatAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            error: (_, __) => Center(
+              child: Text('تعذر تحميل السورة حالياً',
+                  style: QuranTextStyles.body(13, color: QuranColors.text3)),
+            ),
+            data: (ayat) {
               if (ayat.isEmpty) {
                 return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Text('النص الكامل يُحمَّل من الـ API',
-                        style:
-                            QuranTextStyles.body(13, color: QuranColors.text3)),
-                  ),
+                  child: Text('لا توجد آيات متاحة حالياً',
+                      style: QuranTextStyles.body(13, color: QuranColors.text3)),
                 );
               }
 
-              if (ayahIndex >= ayat.length) return const SizedBox.shrink();
-              final ayah = ayat[ayahIndex];
-
-              return _AyahRow(ayah: ayah);
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.03),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: QuranColors.border2, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: QuranColors.navy.withOpacity(0.35),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (surah.id != 9) ...[
+                        Text(
+                          'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+                          textAlign: TextAlign.center,
+                          textDirection: TextDirection.rtl,
+                          style: QuranTextStyles.quranText.copyWith(
+                            fontSize: 24,
+                            color: QuranColors.gold,
+                            height: 2.0,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      Text.rich(
+                        TextSpan(children: _buildAyahSpans(ayat)),
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.justify,
+                        style: QuranTextStyles.quranText.copyWith(
+                          height: 2.2,
+                          fontSize: 27,
+                          color: QuranColors.text1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             },
           ),
         ),
       ],
     );
   }
-}
 
-class _AyahRow extends StatelessWidget {
-  final AyahModel ayah;
-  const _AyahRow({required this.ayah});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: QuranColors.border2, width: 1),
-        ),
-      ),
-      child: Row(
-        textDirection: TextDirection.rtl,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Ayah text
-          Expanded(
-            child: Text(
-              '${ayah.text}  ﴿${ayah.number}﴾',
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-              style: QuranTextStyles.quranText,
-            ),
+  List<InlineSpan> _buildAyahSpans(List<AyahModel> ayat) {
+    final spans = <InlineSpan>[];
+    for (final ayah in ayat) {
+      spans.add(TextSpan(text: '${ayah.text} '));
+      spans.add(
+        TextSpan(
+          text: '۝${ayah.number} ',
+          style: QuranTextStyles.quranText.copyWith(
+            color: QuranColors.gold,
+            fontSize: 22,
+            height: 2.1,
           ),
-        ],
-      ),
-    );
+        ),
+      );
+    }
+    return spans;
   }
 }
