@@ -25,8 +25,48 @@ final matchesProvider = NotifierProvider<MatchesNotifier, List<MatchModel>>(
   MatchesNotifier.new,
 );
 
+enum MatchViewScope { all, important }
+
+enum MatchLeagueCategory { all, laLiga, premierLeague }
+
+final matchViewScopeProvider =
+    StateProvider<MatchViewScope>((_) => MatchViewScope.important);
+final matchLeagueCategoryProvider =
+    StateProvider<MatchLeagueCategory>((_) => MatchLeagueCategory.all);
+
+bool _isImportantLeague(MatchCompetition competition) {
+  return competition == MatchCompetition.laLiga ||
+      competition == MatchCompetition.premierLeague;
+}
+
+final visibleMatchesProvider = Provider<List<MatchModel>>((ref) {
+  final all = ref.watch(matchesProvider);
+  final scope = ref.watch(matchViewScopeProvider);
+  final category = ref.watch(matchLeagueCategoryProvider);
+
+  Iterable<MatchModel> result = all;
+
+  if (scope == MatchViewScope.important) {
+    result = result.where((match) => _isImportantLeague(match.competition));
+  }
+
+  switch (category) {
+    case MatchLeagueCategory.all:
+      break;
+    case MatchLeagueCategory.laLiga:
+      result = result.where((m) => m.competition == MatchCompetition.laLiga);
+      break;
+    case MatchLeagueCategory.premierLeague:
+      result =
+          result.where((m) => m.competition == MatchCompetition.premierLeague);
+      break;
+  }
+
+  return result.toList();
+});
+
 final liveMatchProvider = Provider<MatchModel?>((ref) {
-  final matches = ref.watch(matchesProvider);
+  final matches = ref.watch(visibleMatchesProvider);
   try {
     return matches.firstWhere(
       (m) => m.status == MatchStatus.live && m.isFavouriteMatch,
@@ -37,7 +77,7 @@ final liveMatchProvider = Provider<MatchModel?>((ref) {
 });
 
 final todayMatchesProvider = Provider<List<MatchModel>>((ref) {
-  final matches = ref.watch(matchesProvider);
+  final matches = ref.watch(visibleMatchesProvider);
   final today = DateTime.now();
 
   return matches
@@ -64,9 +104,8 @@ final finishedMatchesProvider = Provider<List<MatchModel>>((ref) => ref
     .where((m) => m.status == MatchStatus.finished)
     .toList());
 
-
 final yesterdayMatchesProvider = Provider<List<MatchModel>>((ref) {
-  final matches = ref.watch(matchesProvider);
+  final matches = ref.watch(visibleMatchesProvider);
   final now = DateTime.now();
   final yesterday = DateTime(now.year, now.month, now.day).subtract(
     const Duration(days: 1),
@@ -82,7 +121,7 @@ final yesterdayMatchesProvider = Provider<List<MatchModel>>((ref) {
 });
 
 final barcaUpcomingProvider = Provider<List<MatchModel>>((ref) {
-  final matches = ref.watch(matchesProvider);
+  final matches = ref.watch(visibleMatchesProvider);
   final now = DateTime.now();
 
   return matches

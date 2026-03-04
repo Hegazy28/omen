@@ -321,6 +321,7 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
                 controller: _titleController,
                 decoration: const InputDecoration(labelText: 'Title'),
                 textInputAction: TextInputAction.next,
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -342,41 +343,52 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
                 ),
                 onTap: _pickTime,
               ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<TaskPriority>(
-                value: _priority,
-                decoration: const InputDecoration(labelText: 'Priority'),
-                items: TaskPriority.values
-                    .map(
-                      (item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(item.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _priority = value);
-                  }
-                },
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Priority', style: TaskTextStyles.label(12)),
               ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<TaskSection>(
-                value: _section,
-                decoration: const InputDecoration(labelText: 'Section'),
-                items: TaskSection.values
-                    .map(
-                      (item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(item.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _section = value);
-                  }
-                },
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                children: TaskPriority.values.map((item) {
+                  final isSelected = _priority == item;
+                  return ChoiceChip(
+                    selected: isSelected,
+                    label: Text(item.name),
+                    onSelected: (_) => setState(() => _priority = item),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Section', style: TaskTextStyles.label(12)),
+              ),
+              const SizedBox(height: 6),
+              SegmentedButton<TaskSection>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: TaskSection.morning, label: Text('Morning')),
+                  ButtonSegment(value: TaskSection.afternoon, label: Text('Afternoon')),
+                  ButtonSegment(value: TaskSection.evening, label: Text('Evening')),
+                ],
+                selected: {_section},
+                onSelectionChanged: (v) => setState(() => _section = v.first),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: TaskColors.glassBorder),
+                ),
+                child: Text(
+                  'Preview: ${_titleController.text.trim().isEmpty ? 'New task' : _titleController.text.trim()} • ${_timeController.text} • ${_section.name} • ${_priority.name}',
+                  style: TaskTextStyles.body(11, color: TaskColors.text2),
+                ),
               ),
             ],
           ),

@@ -69,8 +69,17 @@ class _SurahList extends ConsumerWidget {
             itemCount: surahs.length,
             itemBuilder: (_, i) => _SurahRow(
               surah: surahs[i],
-              onTap: () =>
-                  ref.read(activeSurahProvider.notifier).state = surahs[i],
+              onTap: () {
+                final selected = surahs[i];
+                ref.read(activeSurahProvider.notifier).state = selected;
+                ref.read(readingPositionProvider.notifier).update(
+                      ReadingPosition(
+                        surahId: selected.id,
+                        ayahNumber: 1,
+                        page: selected.page,
+                      ),
+                    );
+              },
             ),
           ),
         ),
@@ -190,6 +199,13 @@ class _SurahDetail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ayatAsync = ref.watch(activeSurahAyatProvider);
     final fontSize = ref.watch(surahFontSizeProvider);
+
+    final currentPosition = ref.read(readingPositionProvider);
+    if (currentPosition.surahId != surah.id) {
+      ref.read(readingPositionProvider.notifier).update(
+            ReadingPosition(surahId: surah.id, ayahNumber: 1, page: surah.page),
+          );
+    }
 
     return Column(
       children: [

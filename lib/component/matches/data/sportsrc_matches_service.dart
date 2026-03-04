@@ -339,6 +339,7 @@ class SportsrcMatchesService {
 
   MatchCompetition _competitionFrom(String raw) {
     final value = raw.toLowerCase();
+    if (value.contains('premier')) return MatchCompetition.premierLeague;
     if (value.contains('champions')) return MatchCompetition.championsLeague;
     if (value.contains('copa')) return MatchCompetition.copaDelRey;
     if (value.contains('super')) return MatchCompetition.supercopa;
