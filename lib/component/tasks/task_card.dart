@@ -197,7 +197,7 @@ class _TaskCardState extends State<TaskCard>
                                 Row(
                                   children: [
                                     MetaChip(
-                                      label: widget.task.time,
+                                      label: formatTaskTime12h(widget.task.time),
                                       color: TaskColors.primary,
                                       icon: Icons.access_time_rounded,
                                     ),

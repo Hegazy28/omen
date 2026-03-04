@@ -80,6 +80,8 @@ class SportsrcMatchesService {
     ]).toLowerCase());
 
     final parsedScore = _extractScore(json);
+    final homeLogo = _extractTeamLogo(json, isHome: true);
+    final awayLogo = _extractTeamLogo(json, isHome: false);
     final league = _extractString(json, const [
       'league',
       'strLeague',
@@ -92,14 +94,14 @@ class SportsrcMatchesService {
       id: homeName.toLowerCase().replaceAll(' ', '_'),
       name: homeName,
       shortName: _shortName(homeName),
-      logoAsset: 'assets/Logo.png',
+      logoAsset: homeLogo.isNotEmpty ? homeLogo : 'assets/Logo.png',
     );
 
     final away = TeamModel(
       id: awayName.toLowerCase().replaceAll(' ', '_'),
       name: awayName,
       shortName: _shortName(awayName),
-      logoAsset: 'assets/Logo.png',
+      logoAsset: awayLogo.isNotEmpty ? awayLogo : 'assets/Logo.png',
     );
 
     final eventId = _extractString(json, const [
@@ -242,6 +244,62 @@ class SportsrcMatchesService {
 
     return '';
   }
+
+
+  String _extractTeamLogo(Map<String, dynamic> json, {required bool isHome}) {
+    final keys = isHome
+        ? const [
+            'homeLogo',
+            'home_logo',
+            'strHomeTeamBadge',
+            'homeBadge',
+            'homeCrest',
+          ]
+        : const [
+            'awayLogo',
+            'away_logo',
+            'strAwayTeamBadge',
+            'awayBadge',
+            'awayCrest',
+          ];
+
+    final direct = _extractString(json, keys);
+    if (_isUrl(direct)) return direct;
+
+    final nestedSide = json['teams'];
+    if (nestedSide is Map<String, dynamic>) {
+      final side = nestedSide[isHome ? 'home' : 'away'];
+      if (side is Map<String, dynamic>) {
+        final nested = _extractString(side, const [
+          'logo',
+          'badge',
+          'crest',
+          'strTeamBadge',
+          'image',
+          'icon',
+        ]);
+        if (_isUrl(nested)) return nested;
+      }
+    }
+
+    final teamNode = json[isHome ? 'homeTeam' : 'awayTeam'];
+    if (teamNode is Map<String, dynamic>) {
+      final nested = _extractString(teamNode, const [
+        'logo',
+        'badge',
+        'crest',
+        'strTeamBadge',
+        'image',
+        'icon',
+      ]);
+      if (_isUrl(nested)) return nested;
+    }
+
+    return '';
+  }
+
+  bool _isUrl(String value) =>
+      value.startsWith('http://') || value.startsWith('https://');
 
   String _extractString(Map<String, dynamic> json, List<String> keys) {
     for (final key in keys) {

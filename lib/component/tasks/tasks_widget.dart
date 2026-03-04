@@ -128,7 +128,7 @@ class _AddTaskDialog extends ConsumerStatefulWidget {
 class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
   final _titleController = TextEditingController();
   final _subtitleController = TextEditingController();
-  final _timeController = TextEditingController(text: '09:00');
+  final _timeController = TextEditingController(text: '09:00 AM');
   TaskPriority _priority = TaskPriority.medium;
   TaskSection _section = TaskSection.morning;
 
@@ -138,6 +138,19 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
     _subtitleController.dispose();
     _timeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (picked == null) return;
+
+    final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+    final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+    final minute = picked.minute.toString().padLeft(2, '0');
+    _timeController.text = '$hour:$minute $period';
   }
 
   @override
@@ -158,14 +171,22 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
               const SizedBox(height: 8),
               TextField(
                 controller: _subtitleController,
-                decoration: const InputDecoration(labelText: 'Subtitle (optional)'),
+                decoration:
+                    const InputDecoration(labelText: 'Subtitle (optional)'),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _timeController,
-                decoration: const InputDecoration(labelText: 'Time (HH:mm)'),
-                textInputAction: TextInputAction.done,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Time (hh:mm AM/PM)',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.access_time_rounded),
+                    onPressed: _pickTime,
+                  ),
+                ),
+                onTap: _pickTime,
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<TaskPriority>(
@@ -226,7 +247,7 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
                   title: title,
                   subtitle: _subtitleController.text.trim(),
                   time: _timeController.text.trim().isEmpty
-                      ? '09:00'
+                      ? '09:00 AM'
                       : _timeController.text.trim(),
                   priority: _priority,
                   section: _section,

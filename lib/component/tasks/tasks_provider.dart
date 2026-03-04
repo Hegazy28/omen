@@ -40,7 +40,7 @@ class TasksNotifier extends Notifier<List<TaskModel>> {
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: title.trim(),
       subtitle: subtitle?.trim().isEmpty == true ? null : subtitle?.trim(),
-      time: time,
+      time: formatTaskTime12h(time),
       priority: priority,
       section: section,
     );
