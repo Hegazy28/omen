@@ -28,6 +28,7 @@ abstract final class MatchColors {
 
   // Competition accent colours
   static const laLiga = Color(0xFFFF6B35);
+  static const premierLeague = Color(0xFF8A2BE2);
   static const ucl = Color(0xFF4FC3F7);
   static const copa = Color(0xFFAB47BC);
   static const supercopa = Color(0xFFFFD166);
@@ -101,6 +102,7 @@ abstract final class MatchDecorations {
 extension MatchCompetitionX on MatchCompetition {
   String get label => switch (this) {
         MatchCompetition.laLiga => 'La Liga',
+        MatchCompetition.premierLeague => 'Premier League',
         MatchCompetition.championsLeague => 'UEFA Champions League',
         MatchCompetition.copaDelRey => 'Copa del Rey',
         MatchCompetition.supercopa => 'Supercopa',
@@ -109,6 +111,7 @@ extension MatchCompetitionX on MatchCompetition {
 
   String get shortLabel => switch (this) {
         MatchCompetition.laLiga => 'La Liga',
+        MatchCompetition.premierLeague => 'Premier League',
         MatchCompetition.championsLeague => 'UCL',
         MatchCompetition.copaDelRey => 'Copa',
         MatchCompetition.supercopa => 'Supercopa',
@@ -117,6 +120,7 @@ extension MatchCompetitionX on MatchCompetition {
 
   Color get color => switch (this) {
         MatchCompetition.laLiga => MatchColors.laLiga,
+        MatchCompetition.premierLeague => MatchColors.premierLeague,
         MatchCompetition.championsLeague => MatchColors.ucl,
         MatchCompetition.copaDelRey => MatchColors.copa,
         MatchCompetition.supercopa => MatchColors.supercopa,

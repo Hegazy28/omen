@@ -12,15 +12,18 @@ class TodayMatchesColumn extends StatelessWidget {
   final List<MatchModel> live;
   final List<MatchModel> upcoming;
   final List<MatchModel> finished;
+  final List<MatchModel> yesterday;
 
   const TodayMatchesColumn({
     super.key,
     required this.live,
     required this.upcoming,
     required this.finished,
+    required this.yesterday,
   });
 
-  bool get _isEmpty => live.isEmpty && upcoming.isEmpty && finished.isEmpty;
+  bool get _isEmpty =>
+      live.isEmpty && upcoming.isEmpty && finished.isEmpty && yesterday.isEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +61,12 @@ class TodayMatchesColumn extends StatelessWidget {
           _SectionLabel(label: 'Finished', color: MatchColors.text3),
           const SizedBox(height: 8),
           ...finished.map((m) => MatchRowCard(match: m)),
+          const SizedBox(height: 16),
+        ],
+        if (yesterday.isNotEmpty) ...[
+          _SectionLabel(label: 'Yesterday', color: MatchColors.text2),
+          const SizedBox(height: 8),
+          ...yesterday.map((m) => MatchRowCard(match: m)),
         ],
       ],
     );
