@@ -28,6 +28,7 @@ class MatchesWidget extends ConsumerWidget {
     final live = ref.watch(liveMatchesProvider);
     final upcoming = ref.watch(upcomingMatchesProvider);
     final finished = ref.watch(finishedMatchesProvider);
+    final yesterday = ref.watch(yesterdayMatchesProvider);
 
     // Barca upcoming = all fixtures except the very next one (already shown
     // in NextMatchCard). Skip if it is today (shown in live hero instead).
@@ -63,6 +64,7 @@ class MatchesWidget extends ConsumerWidget {
                   live: live,
                   upcoming: upcoming,
                   finished: finished,
+                  yesterday: yesterday,
                 ),
               ),
             ],
@@ -242,11 +244,13 @@ class _TodayColumn extends ConsumerWidget {
   final List live;
   final List upcoming;
   final List finished;
+  final List yesterday;
 
   const _TodayColumn({
     required this.live,
     required this.upcoming,
     required this.finished,
+    required this.yesterday,
   });
 
   @override
@@ -293,7 +297,7 @@ class _TodayColumn extends ConsumerWidget {
                 const Spacer(),
                 // Total count badge
                 _CountBadge(
-                    count: live.length + upcoming.length + finished.length),
+                    count: live.length + upcoming.length + finished.length + yesterday.length),
               ],
             ),
           ),
@@ -308,6 +312,7 @@ class _TodayColumn extends ConsumerWidget {
                 live: List.from(live),
                 upcoming: List.from(upcoming),
                 finished: List.from(finished),
+                yesterday: List.from(yesterday),
               ),
             ),
           ),
