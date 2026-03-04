@@ -6,6 +6,7 @@ enum MatchStatus { upcoming, live, finished }
 
 enum MatchCompetition {
   laLiga,
+  premierLeague,
   championsLeague,
   copaDelRey,
   supercopa,
