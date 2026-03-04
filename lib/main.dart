@@ -9,11 +9,13 @@ import 'package:omen/core/router.dart';
 import 'package:omen/ui/matches_screen/matches.dart';
 import 'package:omen/ui/quran_screen/quran.dart';
 import 'package:omen/ui/tasks_screen/tasks.dart';
+import 'package:omen/component/tasks/tasks_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
+  await initTasksStorage();
 
   windowManager.waitUntilReadyToShow().then((_) async {
     await windowManager.setResizable(false);

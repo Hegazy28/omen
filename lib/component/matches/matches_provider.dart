@@ -1,16 +1,32 @@
-// lib/features/matches/providers/matches_provider.dart
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:omen/component/matches/data/sportsrc_matches_service.dart';
 import 'package:omen/component/matches/match_model.dart';
-import 'package:omen/component/matches/data/matches_sample_data.dart';
+import 'package:omen/component/matches/matches_sample_data.dart';
 
-// ── Source of truth ───────────────────────────────────────
+class MatchesNotifier extends Notifier<List<MatchModel>> {
+  final _service = SportsrcMatchesService();
 
-final matchesProvider = Provider<List<MatchModel>>(
-  (_) => buildSampleMatches(),
+  @override
+  List<MatchModel> build() {
+    Future.microtask(_refreshFromApi);
+    return buildSampleMatches();
+  }
+
+  Future<void> _refreshFromApi() async {
+    try {
+      final remoteMatches = await _service.fetchMatches();
+      if (remoteMatches.isNotEmpty) {
+        state = remoteMatches;
+      }
+    } catch (_) {
+      // keep sample fallback when API is unavailable in environment
+    }
+  }
+}
+
+final matchesProvider = NotifierProvider<MatchesNotifier, List<MatchModel>>(
+  MatchesNotifier.new,
 );
-
-// ── Derived — live match (Barca) ──────────────────────────
 
 final liveMatchProvider = Provider<MatchModel?>((ref) {
   final matches = ref.watch(matchesProvider);
@@ -22,8 +38,6 @@ final liveMatchProvider = Provider<MatchModel?>((ref) {
     return null;
   }
 });
-
-// ── Derived — today's matches (all, sorted by kickoff) ───
 
 final todayMatchesProvider = Provider<List<MatchModel>>((ref) {
   final matches = ref.watch(matchesProvider);
@@ -37,8 +51,6 @@ final todayMatchesProvider = Provider<List<MatchModel>>((ref) {
       .toList()
     ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
 });
-
-// ── Derived — today split by status ──────────────────────
 
 final liveMatchesProvider = Provider<List<MatchModel>>((ref) => ref
     .watch(todayMatchesProvider)
@@ -55,8 +67,6 @@ final finishedMatchesProvider = Provider<List<MatchModel>>((ref) => ref
     .where((m) => m.status == MatchStatus.finished)
     .toList());
 
-// ── Derived — Barca upcoming fixtures ────────────────────
-
 final barcaUpcomingProvider = Provider<List<MatchModel>>((ref) {
   final matches = ref.watch(matchesProvider);
   final now = DateTime.now();
@@ -69,8 +79,6 @@ final barcaUpcomingProvider = Provider<List<MatchModel>>((ref) {
       .toList()
     ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
 });
-
-// ── Derived — next Barca match ────────────────────────────
 
 final nextBarcaMatchProvider = Provider<MatchModel?>((ref) {
   final upcoming = ref.watch(barcaUpcomingProvider);
