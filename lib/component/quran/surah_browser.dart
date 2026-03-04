@@ -189,6 +189,7 @@ class _SurahDetail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ayatAsync = ref.watch(activeSurahAyatProvider);
+    final fontSize = ref.watch(surahFontSizeProvider);
 
     return Column(
       children: [
@@ -235,6 +236,27 @@ class _SurahDetail extends ConsumerWidget {
             height: 1,
             color: QuranColors.border2,
             margin: const EdgeInsets.symmetric(horizontal: 14)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+          child: Row(
+            children: [
+              Text('A-', style: QuranTextStyles.mono(11, color: QuranColors.text3)),
+              Expanded(
+                child: Slider(
+                  value: fontSize,
+                  min: 20,
+                  max: 40,
+                  divisions: 10,
+                  activeColor: QuranColors.gold,
+                  inactiveColor: QuranColors.border,
+                  onChanged: (value) =>
+                      ref.read(surahFontSizeProvider.notifier).state = value,
+                ),
+              ),
+              Text('A+', style: QuranTextStyles.mono(14, color: QuranColors.text3)),
+            ],
+          ),
+        ),
         Expanded(
           child: ayatAsync.when(
             loading: () => const Center(
@@ -258,12 +280,12 @@ class _SurahDetail extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(18, 20, 18, 24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.03),
+                    color: const Color(0xFFF5EBD7),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: QuranColors.border2, width: 1),
+                    border: Border.all(color: const Color(0xFFD8C4A3), width: 1),
                     boxShadow: [
                       BoxShadow(
-                        color: QuranColors.navy.withOpacity(0.35),
+                        color: const Color(0x663A2A18),
                         blurRadius: 18,
                         offset: const Offset(0, 6),
                       ),
@@ -279,20 +301,20 @@ class _SurahDetail extends ConsumerWidget {
                           textDirection: TextDirection.rtl,
                           style: QuranTextStyles.quranText.copyWith(
                             fontSize: 24,
-                            color: QuranColors.gold,
+                            color: const Color(0xFF3B2A17),
                             height: 2.0,
                           ),
                         ),
                         const SizedBox(height: 16),
                       ],
                       Text.rich(
-                        TextSpan(children: _buildAyahSpans(ayat)),
+                        TextSpan(children: _buildAyahSpans(ayat, fontSize)),
                         textDirection: TextDirection.rtl,
                         textAlign: TextAlign.justify,
                         style: QuranTextStyles.quranText.copyWith(
                           height: 2.2,
-                          fontSize: 27,
-                          color: QuranColors.text1,
+                          fontSize: fontSize,
+                          color: const Color(0xFF111111),
                         ),
                       ),
                     ],
@@ -306,7 +328,7 @@ class _SurahDetail extends ConsumerWidget {
     );
   }
 
-  List<InlineSpan> _buildAyahSpans(List<AyahModel> ayat) {
+  List<InlineSpan> _buildAyahSpans(List<AyahModel> ayat, double fontSize) {
     final spans = <InlineSpan>[];
     for (final ayah in ayat) {
       spans.add(TextSpan(text: '${ayah.text} '));
@@ -314,8 +336,8 @@ class _SurahDetail extends ConsumerWidget {
         TextSpan(
           text: '۝${ayah.number} ',
           style: QuranTextStyles.quranText.copyWith(
-            color: QuranColors.gold,
-            fontSize: 22,
+            color: const Color(0xFF3B2A17),
+            fontSize: fontSize - 5,
             height: 2.1,
           ),
         ),

@@ -66,6 +66,8 @@ final filteredSurahsProvider = Provider<List<SurahModel>>((ref) {
 
 final activeSurahProvider = StateProvider<SurahModel?>((_) => null);
 
+final surahFontSizeProvider = StateProvider<double>((_) => 27);
+
 final quranApiServiceProvider = Provider<QuranApiService>((_) => QuranApiService());
 
 final activeSurahAyatProvider = FutureProvider<List<AyahModel>>((ref) async {
