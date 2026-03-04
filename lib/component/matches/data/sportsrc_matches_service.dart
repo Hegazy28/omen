@@ -20,10 +20,7 @@ class SportsrcMatchesService {
     final decoded = jsonDecode(response.body);
     final rawEvents = _extractPotentialEvents(decoded);
 
-    final matches = rawEvents
-        .map(_toMatch)
-        .whereType<MatchModel>()
-        .toList();
+    final matches = rawEvents.map(_toMatch).whereType<MatchModel>().toList();
 
     // Deduplicate by generated id.
     final byId = <String, MatchModel>{};
@@ -121,8 +118,7 @@ class SportsrcMatchesService {
       kickoff: kickoff,
       homeScore: status == MatchStatus.upcoming ? null : parsedScore.$1,
       awayScore: status == MatchStatus.upcoming ? null : parsedScore.$2,
-      isFavouriteMatch:
-          homeName.toLowerCase().contains('barcelona') ||
+      isFavouriteMatch: homeName.toLowerCase().contains('barcelona') ||
           awayName.toLowerCase().contains('barcelona'),
     );
   }
