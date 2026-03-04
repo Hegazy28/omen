@@ -114,20 +114,25 @@ class TaskModel {
       };
 
   TaskModel copyWith({
-    bool? isCompleted,
-    bool? isStarred,
+    String? title,
+    String? subtitle,
     String? notes,
     List<String>? comments,
+    String? time,
+    TaskPriority? priority,
+    TaskSection? section,
+    bool? isCompleted,
+    bool? isStarred,
   }) {
     return TaskModel(
       id: id,
-      title: title,
-      subtitle: subtitle,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
       notes: notes ?? this.notes,
       comments: comments ?? this.comments,
-      time: time,
-      priority: priority,
-      section: section,
+      time: time ?? this.time,
+      priority: priority ?? this.priority,
+      section: section ?? this.section,
       isCompleted: isCompleted ?? this.isCompleted,
       isStarred: isStarred ?? this.isStarred,
     );

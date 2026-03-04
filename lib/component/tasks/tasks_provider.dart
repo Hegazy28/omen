@@ -53,6 +53,38 @@ class TasksNotifier extends Notifier<List<TaskModel>> {
     _save(state);
   }
 
+
+  void updateTask({
+    required String id,
+    required String title,
+    String? subtitle,
+    String? notes,
+    List<String> comments = const [],
+    required String time,
+    required TaskPriority priority,
+    required TaskSection section,
+  }) {
+    state = [
+      for (final task in state)
+        if (task.id == id)
+          task.copyWith(
+            title: title.trim(),
+            subtitle: subtitle?.trim().isEmpty == true ? null : subtitle?.trim(),
+            notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
+            comments: comments
+                .where((c) => c.trim().isNotEmpty)
+                .map((c) => c.trim())
+                .toList(),
+            time: formatTaskTime12h(time),
+            priority: priority,
+            section: section,
+          )
+        else
+          task,
+    ];
+    _save(state);
+  }
+
   void toggleCompleted(String id) {
     state = [
       for (final task in state)
@@ -102,7 +134,9 @@ final filteredTasksProvider = Provider<List<TaskModel>>((ref) {
   return byStatus.where((task) {
     final matchesQuery = query.isEmpty ||
         task.title.toLowerCase().contains(query) ||
-        (task.subtitle?.toLowerCase().contains(query) ?? false);
+        (task.subtitle?.toLowerCase().contains(query) ?? false) ||
+        (task.notes?.toLowerCase().contains(query) ?? false) ||
+        task.comments.any((c) => c.toLowerCase().contains(query));
     final matchesPriority = priority == null || task.priority == priority;
     final matchesSection = section == null || task.section == section;
     return matchesQuery && matchesPriority && matchesSection;
