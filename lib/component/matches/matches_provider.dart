@@ -64,6 +64,23 @@ final finishedMatchesProvider = Provider<List<MatchModel>>((ref) => ref
     .where((m) => m.status == MatchStatus.finished)
     .toList());
 
+
+final yesterdayMatchesProvider = Provider<List<MatchModel>>((ref) {
+  final matches = ref.watch(matchesProvider);
+  final now = DateTime.now();
+  final yesterday = DateTime(now.year, now.month, now.day).subtract(
+    const Duration(days: 1),
+  );
+
+  return matches
+      .where((m) =>
+          m.kickoff.year == yesterday.year &&
+          m.kickoff.month == yesterday.month &&
+          m.kickoff.day == yesterday.day)
+      .toList()
+    ..sort((a, b) => b.kickoff.compareTo(a.kickoff));
+});
+
 final barcaUpcomingProvider = Provider<List<MatchModel>>((ref) {
   final matches = ref.watch(matchesProvider);
   final now = DateTime.now();
