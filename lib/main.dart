@@ -9,6 +9,7 @@ import 'package:omen/core/router.dart';
 import 'package:omen/ui/matches_screen/matches.dart';
 import 'package:omen/ui/quran_screen/quran.dart';
 import 'package:omen/ui/tasks_screen/tasks.dart';
+import 'package:omen/ui/focus_screen/focus.dart';
 import 'package:omen/component/tasks/tasks_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -40,6 +41,7 @@ class _MyAppState extends State<MyApp> {
           MyRoutes.tasks: (context) => const Tasks(),
           MyRoutes.matches: (context) => const Matches(),
           MyRoutes.quran: (context) => const Quran(),
+          MyRoutes.focus: (context) => const FocusScreen(),
         },
         title: 'Flutter Demo',
         theme: AppTheme.dark,
@@ -93,6 +95,13 @@ class _MyAppState extends State<MyApp> {
                         onTap: () => setState(() {
                               page = 2;
                             })),
+                    SizedBox(width: 12),
+                    InkWell(
+                        highlightColor: Mycolors.transparent,
+                        child: Text("Focus", style: Myfonts.labelMedium),
+                        onTap: () => setState(() {
+                              page = 3;
+                            })),
                   ],
                 ),
               ),
@@ -106,6 +115,7 @@ class _MyAppState extends State<MyApp> {
                         Tasks(),
                         Matches(),
                         Quran(),
+                        FocusScreen(),
                       ],
                     ),
                   ]),
