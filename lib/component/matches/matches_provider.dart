@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omen/component/matches/data/sportsrc_matches_service.dart';
 import 'package:omen/component/matches/match_model.dart';
-import 'package:omen/component/matches/matches_sample_data.dart';
 
 class MatchesNotifier extends Notifier<List<MatchModel>> {
   final _service = SportsrcMatchesService();
@@ -9,17 +8,15 @@ class MatchesNotifier extends Notifier<List<MatchModel>> {
   @override
   List<MatchModel> build() {
     Future.microtask(_refreshFromApi);
-    return buildSampleMatches();
+    return const [];
   }
 
   Future<void> _refreshFromApi() async {
     try {
       final remoteMatches = await _service.fetchMatches();
-      if (remoteMatches.isNotEmpty) {
-        state = remoteMatches;
-      }
+      state = remoteMatches;
     } catch (_) {
-      // keep sample fallback when API is unavailable in environment
+      state = const [];
     }
   }
 }
