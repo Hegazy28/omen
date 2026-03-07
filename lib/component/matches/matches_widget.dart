@@ -25,13 +25,29 @@ class MatchesWidget extends ConsumerWidget {
     final liveMatch = ref.watch(liveMatchProvider);
     final nextMatch = ref.watch(nextBarcaMatchProvider);
     final barcaFixtures = ref.watch(barcaUpcomingProvider);
+    final scope = ref.watch(matchViewScopeProvider);
     final live = ref.watch(liveMatchesProvider);
     final upcoming = ref.watch(upcomingMatchesProvider);
     final finished = ref.watch(finishedMatchesProvider);
+    final yesterday = ref.watch(yesterdayMatchesProvider);
+    final importantToday = ref.watch(importantTodayMatchesProvider);
 
     // Barca upcoming = all fixtures except the very next one (already shown
     // in NextMatchCard). Skip if it is today (shown in live hero instead).
     final fixturesExcludingNext = barcaFixtures.skip(1).toList();
+
+    final importantIds = importantToday.map((m) => m.id).toSet();
+    final showImportantSection = scope == MatchViewScope.all && importantToday.isNotEmpty;
+
+    final liveList = showImportantSection
+        ? live.where((m) => !importantIds.contains(m.id)).toList()
+        : live;
+    final upcomingList = showImportantSection
+        ? upcoming.where((m) => !importantIds.contains(m.id)).toList()
+        : upcoming;
+    final finishedList = showImportantSection
+        ? finished.where((m) => !importantIds.contains(m.id)).toList()
+        : finished;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,9 +76,11 @@ class MatchesWidget extends ConsumerWidget {
               // ── Right column: Today's matches ──────────
               Expanded(
                 child: _TodayColumn(
-                  live: live,
-                  upcoming: upcoming,
-                  finished: finished,
+                  live: liveList,
+                  upcoming: upcomingList,
+                  finished: finishedList,
+                  yesterday: yesterday,
+                  important: showImportantSection ? importantToday : const [],
                 ),
               ),
             ],
@@ -75,9 +93,9 @@ class MatchesWidget extends ConsumerWidget {
 
 // ── Top bar ───────────────────────────────────────────────
 
-class _TopBar extends StatelessWidget {
+class _TopBar extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     const months = [
       'January',
@@ -117,6 +135,10 @@ class _TopBar extends StatelessWidget {
           ],
         ),
         const Spacer(),
+        _MatchScopeControl(),
+        const SizedBox(width: 8),
+        _LeagueCategoryControl(),
+        const SizedBox(width: 10),
         // Favourite team tag
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -145,6 +167,69 @@ class _TopBar extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+
+class _MatchScopeControl extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scope = ref.watch(matchViewScopeProvider);
+
+    return SegmentedButton<MatchViewScope>(
+      showSelectedIcon: false,
+      style: ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        side: MaterialStatePropertyAll(
+          BorderSide(color: MatchColors.glassBorder.withOpacity(0.8)),
+        ),
+      ),
+      segments: const [
+        ButtonSegment(value: MatchViewScope.all, label: Text('All')),
+        ButtonSegment(value: MatchViewScope.important, label: Text('Important')),
+      ],
+      selected: {scope},
+      onSelectionChanged: (selected) =>
+          ref.read(matchViewScopeProvider.notifier).state = selected.first,
+    );
+  }
+}
+
+class _LeagueCategoryControl extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final category = ref.watch(matchLeagueCategoryProvider);
+    final label = switch (category) {
+      MatchLeagueCategory.all => 'Leagues: All',
+      MatchLeagueCategory.laLiga => 'Leagues: LaLiga',
+      MatchLeagueCategory.premierLeague => 'Leagues: Premier',
+    };
+
+    return PopupMenuButton<MatchLeagueCategory>(
+      onSelected: (value) =>
+          ref.read(matchLeagueCategoryProvider.notifier).state = value,
+      itemBuilder: (_) => const [
+        PopupMenuItem(value: MatchLeagueCategory.all, child: Text('All leagues')),
+        PopupMenuItem(value: MatchLeagueCategory.laLiga, child: Text('LaLiga')),
+        PopupMenuItem(value: MatchLeagueCategory.premierLeague, child: Text('Premier League')),
+      ],
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: MatchColors.glass,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: MatchColors.glassBorder),
+        ),
+        child: Row(
+          children: [
+            Text(label, style: MatchTextStyles.body(11, color: MatchColors.text2)),
+            const SizedBox(width: 5),
+            const Icon(Icons.expand_more_rounded, size: 16, color: MatchColors.text3),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -242,11 +327,13 @@ class _TodayColumn extends ConsumerWidget {
   final List live;
   final List upcoming;
   final List finished;
+  final List yesterday;
 
   const _TodayColumn({
     required this.live,
     required this.upcoming,
     required this.finished,
+    required this.yesterday,
   });
 
   @override
@@ -293,7 +380,7 @@ class _TodayColumn extends ConsumerWidget {
                 const Spacer(),
                 // Total count badge
                 _CountBadge(
-                    count: live.length + upcoming.length + finished.length),
+                    count: live.length + upcoming.length + finished.length + yesterday.length),
               ],
             ),
           ),
@@ -308,6 +395,7 @@ class _TodayColumn extends ConsumerWidget {
                 live: List.from(live),
                 upcoming: List.from(upcoming),
                 finished: List.from(finished),
+                yesterday: List.from(yesterday),
               ),
             ),
           ),

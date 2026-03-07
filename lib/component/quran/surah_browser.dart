@@ -7,14 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omen/component/quran/quran_models.dart';
 import 'package:omen/component/quran/quran_providers.dart';
 import 'quran_theme.dart';
+import 'package:omen/ui/quran_screen/surah_reader_screen.dart';
 
 class SurahBrowser extends ConsumerWidget {
   const SurahBrowser({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final active = ref.watch(activeSurahProvider);
-    return active == null ? const _SurahList() : _SurahDetail(surah: active);
+    return const _SurahList();
   }
 }
 
@@ -26,7 +26,6 @@ class _SurahList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final surahs = ref.watch(filteredSurahsProvider);
-    final query = ref.watch(surahSearchProvider);
 
     return Column(
       children: [
@@ -69,8 +68,14 @@ class _SurahList extends ConsumerWidget {
             itemCount: surahs.length,
             itemBuilder: (_, i) => _SurahRow(
               surah: surahs[i],
-              onTap: () =>
-                  ref.read(activeSurahProvider.notifier).state = surahs[i],
+              onTap: () {
+                final selected = surahs[i];
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SurahReaderScreen(surah: selected),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -176,151 +181,6 @@ class _TypeBadge extends StatelessWidget {
       child: Text(label,
           style:
               QuranTextStyles.label(9, color: color, weight: FontWeight.w700)),
-    );
-  }
-}
-
-// ── Detail view ───────────────────────────────────────────
-
-class _SurahDetail extends ConsumerWidget {
-  final SurahModel surah;
-  const _SurahDetail({required this.surah});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ayat = ref.watch(activeSurahAyatProvider);
-
-    return Column(
-      children: [
-        // Back + header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () =>
-                    ref.read(activeSurahProvider.notifier).state = null,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration:
-                      QuranDecorations.panel(radius: BorderRadius.circular(8)),
-                  child: Text('← قائمة السور',
-                      style:
-                          QuranTextStyles.body(11, color: QuranColors.text3)),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Surah header
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Column(
-            children: [
-              Text(surah.name,
-                  style: const TextStyle(
-                    fontFamily: 'Amiri',
-                    fontSize: 30,
-                    color: QuranColors.gold2,
-                    fontWeight: FontWeight.w400,
-                  )),
-              const SizedBox(height: 4),
-              Text(
-                '${surah.ayatCount} آية  ·  جزء ${surah.juz}  ·  ${surah.type == SurahType.makki ? "مكية" : "مدنية"}',
-                style: QuranTextStyles.body(11, color: QuranColors.text3),
-              ),
-            ],
-          ),
-        ),
-
-        Container(
-            height: 1,
-            color: QuranColors.border2,
-            margin: const EdgeInsets.symmetric(horizontal: 14)),
-
-        // Ayat list
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
-            itemCount: ayat.isEmpty ? 1 : ayat.length + (surah.id != 9 ? 1 : 0),
-            itemBuilder: (_, i) {
-              // Basmala row
-              if (surah.id != 9 && i == 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Text(
-                    'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
-                    textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
-                    style: QuranTextStyles.quranText.copyWith(
-                      fontSize: 20,
-                      color: QuranColors.gold,
-                      shadows: [
-                        Shadow(
-                          color: QuranColors.gold.withOpacity(0.2),
-                          blurRadius: 12,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              final ayahIndex = surah.id != 9 ? i - 1 : i;
-
-              if (ayat.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Text('النص الكامل يُحمَّل من الـ API',
-                        style:
-                            QuranTextStyles.body(13, color: QuranColors.text3)),
-                  ),
-                );
-              }
-
-              if (ayahIndex >= ayat.length) return const SizedBox.shrink();
-              final ayah = ayat[ayahIndex];
-
-              return _AyahRow(ayah: ayah);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AyahRow extends StatelessWidget {
-  final AyahModel ayah;
-  const _AyahRow({required this.ayah});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: QuranColors.border2, width: 1),
-        ),
-      ),
-      child: Row(
-        textDirection: TextDirection.rtl,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Ayah text
-          Expanded(
-            child: Text(
-              '${ayah.text}  ﴿${ayah.number}﴾',
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-              style: QuranTextStyles.quranText,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
