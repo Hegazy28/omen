@@ -1,30 +1,33 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:omen/main.dart';
+import 'package:omen/component/tasks/task_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('TaskModel map serialization round-trip', () {
+    const task = TaskModel(
+      id: 't1',
+      title: 'Read Quran',
+      subtitle: 'Surah Al-Kahf',
+      notes: 'Read with tafsir for better understanding.',
+      comments: ['Start after Fajr', 'Review notes at night'],
+      time: '8:00 AM',
+      priority: TaskPriority.high,
+      section: TaskSection.morning,
+      isCompleted: true,
+      isStarred: true,
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final map = task.toMap();
+    final restored = TaskModel.fromMap(map);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(restored.id, task.id);
+    expect(restored.title, task.title);
+    expect(restored.subtitle, task.subtitle);
+    expect(restored.notes, task.notes);
+    expect(restored.comments, task.comments);
+    expect(restored.time, task.time);
+    expect(restored.priority, task.priority);
+    expect(restored.section, task.section);
+    expect(restored.isCompleted, task.isCompleted);
+    expect(restored.isStarred, task.isStarred);
   });
 }
