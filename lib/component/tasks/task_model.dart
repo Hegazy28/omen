@@ -127,6 +127,35 @@ class TaskModel {
         'isCarryOver': isCarryOver,
       };
 
+  factory TaskModel.fromMap(Map<dynamic, dynamic> map) {
+    return TaskModel(
+      id: map['id'] as String,
+      title: map['title'] as String,
+      subtitle: map['subtitle'] as String?,
+      notes: map['notes'] as String?,
+      comments: (map['comments'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
+      time: formatTaskTime12h(map['time'] as String? ?? ''),
+      priority: taskPriorityFromString(map['priority'] as String? ?? ''),
+      section: taskSectionFromString(map['section'] as String? ?? ''),
+      isCompleted: map['isCompleted'] as bool? ?? false,
+      isStarred: map['isStarred'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'title': title,
+        'subtitle': subtitle,
+        'notes': notes,
+        'comments': comments,
+        'time': time,
+        'priority': priority.name,
+        'section': section.name,
+        'isCompleted': isCompleted,
+        'isStarred': isStarred,
+      };
+
   TaskModel copyWith({
     String? title,
     String? subtitle,

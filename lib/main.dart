@@ -15,6 +15,8 @@ import 'package:omen/ui/focus_screen/focus.dart';
 import 'package:omen/ui/matches_screen/matches.dart';
 import 'package:omen/ui/quran_screen/quran.dart';
 import 'package:omen/ui/tasks_screen/tasks.dart';
+import 'package:omen/ui/focus_screen/focus.dart';
+import 'package:omen/component/tasks/tasks_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
