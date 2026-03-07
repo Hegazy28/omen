@@ -134,18 +134,18 @@ class SportsrcMatchesService {
 
     if (rawDate is int) {
       // Sportsrc uses Unix epoch in milliseconds.
-      return DateTime.fromMillisecondsSinceEpoch(rawDate, isUtc: true).toLocal();
+      return DateTime.fromMillisecondsSinceEpoch(rawDate, isUtc: true);
     }
 
     if (rawDate is String && rawDate.trim().isNotEmpty) {
       final asInt = int.tryParse(rawDate.trim());
       if (asInt != null) {
         final millis = rawDate.trim().length >= 13 ? asInt : asInt * 1000;
-        return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal();
+        return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
       }
 
       final parsed = DateTime.tryParse(rawDate.trim());
-      if (parsed != null) return parsed.toLocal();
+      if (parsed != null) return parsed.toUtc();
     }
 
     final fallbackRaw = _extractString(json, const [
@@ -155,9 +155,9 @@ class SportsrcMatchesService {
       'commence_time',
     ]);
     final fallback = DateTime.tryParse(fallbackRaw);
-    if (fallback != null) return fallback.toLocal();
+    if (fallback != null) return fallback.toUtc();
 
-    return DateTime.now();
+    return DateTime.now().toUtc();
   }
 
   (int?, int?) _extractScore(Map<String, dynamic> json) {

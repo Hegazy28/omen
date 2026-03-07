@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omen/component/matches/data/sportsrc_matches_service.dart';
 import 'package:omen/component/matches/match_model.dart';
+import 'package:omen/component/matches/match_time_utils.dart';
 
 class MatchesNotifier extends Notifier<List<MatchModel>> {
   final _service = SportsrcMatchesService();
@@ -73,13 +74,10 @@ final liveMatchProvider = Provider<MatchModel?>((ref) {
 
 final todayMatchesProvider = Provider<List<MatchModel>>((ref) {
   final matches = ref.watch(visibleMatchesProvider);
-  final today = DateTime.now();
+  final todayKey = cairoDayKey(cairoNow());
 
   return matches
-      .where((m) =>
-          m.kickoff.year == today.year &&
-          m.kickoff.month == today.month &&
-          m.kickoff.day == today.day)
+      .where((m) => cairoDayKey(m.kickoff) == todayKey)
       .toList()
     ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
 });
@@ -108,23 +106,17 @@ final finishedMatchesProvider = Provider<List<MatchModel>>((ref) => ref
 
 final yesterdayMatchesProvider = Provider<List<MatchModel>>((ref) {
   final matches = ref.watch(visibleMatchesProvider);
-  final now = DateTime.now();
-  final yesterday = DateTime(now.year, now.month, now.day).subtract(
-    const Duration(days: 1),
-  );
+  final yesterdayKey = cairoDayKey(cairoNow().subtract(const Duration(days: 1)));
 
   return matches
-      .where((m) =>
-          m.kickoff.year == yesterday.year &&
-          m.kickoff.month == yesterday.month &&
-          m.kickoff.day == yesterday.day)
+      .where((m) => cairoDayKey(m.kickoff) == yesterdayKey)
       .toList()
     ..sort((a, b) => b.kickoff.compareTo(a.kickoff));
 });
 
 final barcaUpcomingProvider = Provider<List<MatchModel>>((ref) {
   final matches = ref.watch(visibleMatchesProvider);
-  final now = DateTime.now();
+  final now = DateTime.now().toUtc();
 
   return matches
       .where((m) =>
