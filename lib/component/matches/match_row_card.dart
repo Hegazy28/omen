@@ -9,6 +9,7 @@ import 'matches_theme.dart';
 import 'team_crest.dart';
 import 'competition_badge.dart';
 import 'live_indicator.dart';
+import 'match_time_utils.dart';
 
 class MatchRowCard extends StatelessWidget {
   final MatchModel match;
@@ -156,11 +157,7 @@ class _KickoffTime extends StatelessWidget {
   final DateTime kickoff;
   const _KickoffTime({required this.kickoff});
 
-  String _format(DateTime dt) {
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
+  String _format(DateTime dt) => formatCairoTime12h(dt);
 
   @override
   Widget build(BuildContext context) {

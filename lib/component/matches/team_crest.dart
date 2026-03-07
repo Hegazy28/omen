@@ -33,20 +33,35 @@ class TeamCrest extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNetwork =
+        team.logoAsset.startsWith('http://') || team.logoAsset.startsWith('https://');
+
     return SizedBox(
       width: size,
       height: size,
-      child: Image.asset(
-        team.logoAsset,
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => _FallbackCrest(
-          shortName: team.shortName,
-          size: size,
-          color: _accentFor(team.id),
-        ),
-      ),
+      child: isNetwork
+          ? Image.network(
+              team.logoAsset,
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _FallbackCrest(
+                shortName: team.shortName,
+                size: size,
+                color: _accentFor(team.id),
+              ),
+            )
+          : Image.asset(
+              team.logoAsset,
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _FallbackCrest(
+                shortName: team.shortName,
+                size: size,
+                color: _accentFor(team.id),
+              ),
+            ),
     );
   }
 }

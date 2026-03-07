@@ -7,6 +7,7 @@ import 'package:omen/component/matches/match_model.dart';
 import 'matches_theme.dart';
 import 'team_crest.dart';
 import 'competition_badge.dart';
+import 'match_time_utils.dart';
 
 class BarcaFixturesList extends StatelessWidget {
   final List<MatchModel> fixtures;
@@ -37,27 +38,7 @@ class _FixtureRow extends StatelessWidget {
   final MatchModel match;
   const _FixtureRow({required this.match});
 
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  String _dateLabel(DateTime dt) {
-    final day = dt.day.toString().padLeft(2, '0');
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    return '${_months[dt.month - 1]} $day  ·  $h:$m';
-  }
+  String _dateLabel(DateTime dt) => formatCairoDateTimeShort(dt);
 
   bool get _isHome => match.home.id == 'fcb';
 

@@ -10,12 +10,16 @@ class TaskCard extends StatefulWidget {
   final TaskModel task;
   final VoidCallback onToggle;
   final VoidCallback onStar;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const TaskCard({
     super.key,
     required this.task,
     required this.onToggle,
     required this.onStar,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -193,11 +197,21 @@ class _TaskCardState extends State<TaskCard>
                                         color: TaskColors.text3),
                                   ),
                                 ],
+                                if (widget.task.notes != null && widget.task.notes!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.task.notes!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TaskTextStyles.body(10,
+                                        color: TaskColors.text2),
+                                  ),
+                                ],
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
                                     MetaChip(
-                                      label: widget.task.time,
+                                      label: formatTaskTime12h(widget.task.time),
                                       color: TaskColors.primary,
                                       icon: Icons.access_time_rounded,
                                     ),
@@ -207,11 +221,48 @@ class _TaskCardState extends State<TaskCard>
                                       color: _priorityColor,
                                       dot: true,
                                     ),
+                                    if (widget.task.comments.isNotEmpty) ...[
+                                      const SizedBox(width: 5),
+                                      MetaChip(
+                                        label: '${widget.task.comments.length} comment${widget.task.comments.length > 1 ? 's' : ''}',
+                                        color: TaskColors.text3,
+                                        icon: Icons.chat_bubble_outline_rounded,
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ],
                             ),
                           ),
+
+                          if (widget.onEdit != null || widget.onDelete != null)
+                            PopupMenuButton<String>(
+                              padding: EdgeInsets.zero,
+                              iconSize: 18,
+                              icon: const Icon(
+                                Icons.more_horiz_rounded,
+                                color: TaskColors.text3,
+                              ),
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  widget.onEdit?.call();
+                                } else if (value == 'delete') {
+                                  widget.onDelete?.call();
+                                }
+                              },
+                              itemBuilder: (_) => [
+                                if (widget.onEdit != null)
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('Edit task'),
+                                  ),
+                                if (widget.onDelete != null)
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text('Delete task'),
+                                  ),
+                              ],
+                            ),
 
                           // Star
                           GestureDetector(
