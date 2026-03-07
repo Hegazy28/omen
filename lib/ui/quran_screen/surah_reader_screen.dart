@@ -15,18 +15,25 @@ class SurahReaderScreen extends ConsumerStatefulWidget {
 }
 
 class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
+  int _currentPageIndex = 0;
+  bool _pageInitialized = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(activeSurahProvider.notifier).state = widget.surah;
-      ref.read(readingPositionProvider.notifier).update(
-            ReadingPosition(
-              surahId: widget.surah.id,
-              ayahNumber: 1,
-              page: widget.surah.page,
-            ),
-          );
+
+      final pos = ref.read(readingPositionProvider);
+      if (pos.surahId != widget.surah.id) {
+        ref.read(readingPositionProvider.notifier).update(
+              ReadingPosition(
+                surahId: widget.surah.id,
+                ayahNumber: 1,
+                page: widget.surah.page,
+              ),
+            );
+      }
     });
   }
 
@@ -78,27 +85,79 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
                     }
 
                     final pageGroups = _groupAyatByPage(ayat);
-                    final totalPages = pageGroups.length;
+                    _ensureInitialPage(pageGroups);
 
-                    return ListView.builder(
-                      itemCount: totalPages,
-                      itemBuilder: (_, index) {
-                        final entry = pageGroups[index];
-                        final pageNumber = entry.$1;
-                        final pageAyat = entry.$2;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
+                    final entry = pageGroups[_currentPageIndex];
+                    final pageNumber = entry.$1;
+                    final pageAyat = entry.$2;
+                    final firstAyah = pageAyat.first.number;
+
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _currentPageIndex > 0
+                                    ? () => _goToPage(pageGroups, _currentPageIndex - 1)
+                                    : null,
+                                icon: const Icon(Icons.chevron_left_rounded),
+                                label: const Text('الصفحة السابقة'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _currentPageIndex < pageGroups.length - 1
+                                    ? () => _goToPage(pageGroups, _currentPageIndex + 1)
+                                    : null,
+                                icon: const Icon(Icons.chevron_right_rounded),
+                                label: const Text('الصفحة التالية'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () {
+                                  ref.read(werdProvider.notifier).addPage();
+                                  ref.read(readingPositionProvider.notifier).update(
+                                        ReadingPosition(
+                                          surahId: widget.surah.id,
+                                          ayahNumber: firstAyah,
+                                          page: pageNumber,
+                                        ),
+                                      );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('تم تسجيل صفحة مقروءة'),
+                                      duration: Duration(milliseconds: 900),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.auto_stories_rounded),
+                                label: const Text('أنهيت هذه الصفحة +1'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Expanded(
                           child: _QuranPageCard(
                             pageNumber: pageNumber,
-                            pageIndex: index + 1,
-                            totalPages: totalPages,
-                            showBismillah: index == 0 && widget.surah.id != 9,
+                            pageIndex: _currentPageIndex + 1,
+                            totalPages: pageGroups.length,
+                            showBismillah:
+                                _currentPageIndex == 0 && widget.surah.id != 9,
                             ayat: pageAyat,
                             fontSize: fontSize,
                             surahId: widget.surah.id,
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -108,6 +167,30 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
         ),
       ),
     );
+  }
+
+  void _ensureInitialPage(List<(int, List<AyahModel>)> pageGroups) {
+    if (_pageInitialized) return;
+
+    final last = ref.read(readingPositionProvider);
+    final index = pageGroups.indexWhere((entry) => entry.$1 == last.page);
+    _currentPageIndex = index == -1 ? 0 : index;
+    _pageInitialized = true;
+  }
+
+  void _goToPage(List<(int, List<AyahModel>)> pageGroups, int index) {
+    final safe = index.clamp(0, pageGroups.length - 1);
+    final page = pageGroups[safe];
+    final firstAyah = page.$2.first.number;
+
+    setState(() => _currentPageIndex = safe);
+    ref.read(readingPositionProvider.notifier).update(
+          ReadingPosition(
+            surahId: widget.surah.id,
+            ayahNumber: firstAyah,
+            page: page.$1,
+          ),
+        );
   }
 
   List<(int, List<AyahModel>)> _groupAyatByPage(List<AyahModel> ayat) {
@@ -209,46 +292,48 @@ class _QuranPageCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0DFC2),
-              borderRadius: BorderRadius.circular(40),
-              border: Border.all(color: const Color(0xFFC39A63), width: 1),
-            ),
-            child: Text(
-              'الصفحة $pageNumber  •  $pageIndex/$totalPages',
-              style: QuranTextStyles.mono(10, color: const Color(0xFF6A4B2A)),
-            ),
-          ),
-          if (showBismillah)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0DFC2),
+                borderRadius: BorderRadius.circular(40),
+                border: Border.all(color: const Color(0xFFC39A63), width: 1),
+              ),
               child: Text(
-                'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
-                textDirection: TextDirection.rtl,
-                textAlign: TextAlign.center,
-                style: QuranTextStyles.quranText.copyWith(
-                  color: const Color(0xFF4A3320),
-                  fontSize: fontSize - 2,
-                  height: 2,
-                ),
+                'الصفحة $pageNumber  •  $pageIndex/$totalPages',
+                style: QuranTextStyles.mono(10, color: const Color(0xFF6A4B2A)),
               ),
             ),
-          Text.rich(
-            TextSpan(children: _buildAyahSpans()),
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.justify,
-            style: QuranTextStyles.quranText.copyWith(
-              fontSize: fontSize,
-              height: 2.1,
-              color: const Color(0xFF17120B),
+            if (showBismillah)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Text(
+                  'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.center,
+                  style: QuranTextStyles.quranText.copyWith(
+                    color: const Color(0xFF4A3320),
+                    fontSize: fontSize - 2,
+                    height: 2,
+                  ),
+                ),
+              ),
+            Text.rich(
+              TextSpan(children: _buildAyahSpans()),
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.justify,
+              style: QuranTextStyles.quranText.copyWith(
+                fontSize: fontSize,
+                height: 2.1,
+                color: const Color(0xFF17120B),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
