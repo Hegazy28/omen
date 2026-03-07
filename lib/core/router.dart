@@ -4,4 +4,5 @@ class MyRoutes {
   static const String tasks = '/tasks';
   static const String matches = '/matches';
   static const String quran = '/quran';
+  static const String focus = '/focus';
 }
