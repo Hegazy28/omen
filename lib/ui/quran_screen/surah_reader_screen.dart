@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omen/component/quran/quran_models.dart';
 import 'package:omen/component/quran/quran_providers.dart';
 import 'package:omen/component/quran/quran_theme.dart';
-import 'package:quran/quran.dart' as quran;
+import 'package:quran_library/quran_library.dart' as quran;
 
 class SurahReaderScreen extends ConsumerStatefulWidget {
   final SurahModel surah;
@@ -38,7 +38,13 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF101318),
       appBar: AppBar(
-        title: Text(widget.surah.name, style: QuranTextStyles.surahName),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.surah.name, style: QuranTextStyles.surahName),
+            Text(widget.surah.ename, style: QuranTextStyles.body(10, color: QuranColors.text3)),
+          ],
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -138,6 +144,19 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
                                   ),
                                 ),
                               ),
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0DFC2),
+                                borderRadius: BorderRadius.circular(40),
+                                border: Border.all(color: const Color(0xFFC39A63), width: 1),
+                              ),
+                              child: Text(
+                                '﷽  Surah ${widget.surah.id}',
+                                style: QuranTextStyles.mono(10, color: const Color(0xFF6A4B2A)),
+                              ),
+                            ),
                             Text.rich(
                               TextSpan(children: _buildAyahSpans(ayat, fontSize)),
                               textDirection: TextDirection.rtl,
