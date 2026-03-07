@@ -33,18 +33,13 @@ class PeriodColumn extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Top accent bar
           _AccentBar(color: meta.color),
-
-          // Column header
           _ColumnHeader(
             meta: meta,
             done: done,
             total: tasks.length,
             allDone: allDone,
           ),
-
-          // Scrollable task list
           Expanded(
             child: tasks.isEmpty
                 ? _EmptyColumn(meta: meta)
@@ -54,6 +49,37 @@ class PeriodColumn extends ConsumerWidget {
                         ref.read(tasksProvider.notifier).toggleCompleted(id),
                     onStar: (id) =>
                         ref.read(tasksProvider.notifier).toggleStarred(id),
+                    onEdit: (task) async {
+                      await showDialog<void>(
+                        context: context,
+                        builder: (_) => _EditTaskDialog(task: task),
+                      );
+                    },
+                    onDelete: (task) async {
+                      final approved = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Delete task?'),
+                          content: Text('Remove "${task.title}" permanently?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(true),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (approved == true) {
+                        ref.read(tasksProvider.notifier).removeTask(task.id);
+                      }
+                    },
                   ),
           ),
         ],
@@ -61,8 +87,6 @@ class PeriodColumn extends ConsumerWidget {
     );
   }
 }
-
-// ── Accent bar ────────────────────────────────────────────
 
 class _AccentBar extends StatelessWidget {
   final Color color;
@@ -84,8 +108,6 @@ class _AccentBar extends StatelessWidget {
     );
   }
 }
-
-// ── Column header ─────────────────────────────────────────
 
 class _ColumnHeader extends StatelessWidget {
   final SectionMeta meta;
@@ -111,7 +133,6 @@ class _ColumnHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Icon
           Container(
             width: 34,
             height: 34,
@@ -123,8 +144,6 @@ class _ColumnHeader extends StatelessWidget {
             child: Icon(meta.icon, size: 17, color: meta.color),
           ),
           const SizedBox(width: 10),
-
-          // Label + time range
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,8 +157,6 @@ class _ColumnHeader extends StatelessWidget {
               ],
             ),
           ),
-
-          // Done badge
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
@@ -177,17 +194,19 @@ class _ColumnHeader extends StatelessWidget {
   }
 }
 
-// ── Scrollable task list ──────────────────────────────────
-
 class _TaskList extends StatelessWidget {
   final List<TaskModel> tasks;
   final void Function(String) onToggle;
   final void Function(String) onStar;
+  final void Function(TaskModel) onEdit;
+  final void Function(TaskModel) onDelete;
 
   const _TaskList({
     required this.tasks,
     required this.onToggle,
     required this.onStar,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -200,12 +219,192 @@ class _TaskList extends StatelessWidget {
         task: tasks[i],
         onToggle: () => onToggle(tasks[i].id),
         onStar: () => onStar(tasks[i].id),
+        onEdit: () => onEdit(tasks[i]),
+        onDelete: () => onDelete(tasks[i]),
       ),
     );
   }
 }
 
-// ── Empty state ───────────────────────────────────────────
+class _EditTaskDialog extends ConsumerStatefulWidget {
+  final TaskModel task;
+
+  const _EditTaskDialog({required this.task});
+
+  @override
+  ConsumerState<_EditTaskDialog> createState() => _EditTaskDialogState();
+}
+
+class _EditTaskDialogState extends ConsumerState<_EditTaskDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _subtitleController;
+  late final TextEditingController _notesController;
+  late final TextEditingController _commentsController;
+  late final TextEditingController _timeController;
+  late TaskPriority _priority;
+  late TaskSection _section;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.task.title);
+    _subtitleController = TextEditingController(text: widget.task.subtitle ?? '');
+    _notesController = TextEditingController(text: widget.task.notes ?? '');
+    _commentsController =
+        TextEditingController(text: widget.task.comments.join(', '));
+    _timeController = TextEditingController(text: formatTaskTime12h(widget.task.time));
+    _priority = widget.task.priority;
+    _section = widget.task.section;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _subtitleController.dispose();
+    _notesController.dispose();
+    _commentsController.dispose();
+    _timeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (picked == null) return;
+
+    final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+    final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+    final minute = picked.minute.toString().padLeft(2, '0');
+    _timeController.text = '$hour:$minute $period';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Task'),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _subtitleController,
+                decoration: const InputDecoration(labelText: 'Subtitle (optional)'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _notesController,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _commentsController,
+                decoration: const InputDecoration(
+                  labelText: 'Comments (comma-separated)',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _timeController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Time',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.access_time_rounded),
+                    onPressed: _pickTime,
+                  ),
+                ),
+                onTap: _pickTime,
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Priority',
+                  style: TaskTextStyles.label(12, color: TaskColors.text2),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                children: TaskPriority.values.map((item) {
+                  return ChoiceChip(
+                    selected: _priority == item,
+                    label: Text(item.name),
+                    onSelected: (_) => setState(() => _priority = item),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Section',
+                  style: TaskTextStyles.label(12, color: TaskColors.text2),
+                ),
+              ),
+              const SizedBox(height: 6),
+              SegmentedButton<TaskSection>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: TaskSection.morning, label: Text('Morning')),
+                  ButtonSegment(value: TaskSection.afternoon, label: Text('Afternoon')),
+                  ButtonSegment(value: TaskSection.evening, label: Text('Evening')),
+                ],
+                selected: {_section},
+                onSelectionChanged: (v) => setState(() => _section = v.first),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final title = _titleController.text.trim();
+            if (title.isEmpty) {
+              return;
+            }
+
+            final comments = _commentsController.text
+                .split(',')
+                .map((entry) => entry.trim())
+                .where((entry) => entry.isNotEmpty)
+                .toList();
+
+            ref.read(tasksProvider.notifier).updateTask(
+                  id: widget.task.id,
+                  title: title,
+                  subtitle: _subtitleController.text.trim(),
+                  notes: _notesController.text.trim(),
+                  comments: comments,
+                  time: _timeController.text.trim().isEmpty
+                      ? widget.task.time
+                      : _timeController.text.trim(),
+                  priority: _priority,
+                  section: _section,
+                );
+            Navigator.of(context).pop();
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
 
 class _EmptyColumn extends StatelessWidget {
   final SectionMeta meta;
