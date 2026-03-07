@@ -1,15 +1,65 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:omen/component/quran/azkar_data.dart';
 import 'package:omen/component/quran/data/quran_api_service.dart';
 import 'package:omen/component/quran/quran_models.dart';
 import 'package:omen/component/quran/surahs_data.dart';
 
-class WerdNotifier extends Notifier<int> {
-  @override
-  int build() => 0;
+const String kQuranDailyBoxName = 'quran_daily_box';
+const String _kDayKey = 'day_key';
+const String _kWerdPagesKey = 'werd_pages';
+const String _kAzkarCountsKey = 'azkar_counts';
 
-  void addPage() => state = state + 1;
-  void reset() => state = 0;
+Future<void> initQuranDailyStorage() async {
+  if (!Hive.isBoxOpen(kQuranDailyBoxName)) {
+    await Hive.openBox(kQuranDailyBoxName);
+  }
+}
+
+String _todayQuranKey() {
+  final now = DateTime.now();
+  return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+}
+
+final quranDayTickerProvider = StreamProvider<String>((ref) async* {
+  while (true) {
+    yield _todayQuranKey();
+    await Future<void>.delayed(const Duration(minutes: 1));
+  }
+});
+
+class WerdNotifier extends Notifier<int> {
+  Box<dynamic> get _box => Hive.box(kQuranDailyBoxName);
+
+  @override
+  int build() {
+    ref.watch(quranDayTickerProvider);
+    _ensureDailyReset();
+    return (_box.get(_kWerdPagesKey) as int?) ?? 0;
+  }
+
+  void addPage() {
+    _ensureDailyReset();
+    state = state + 1;
+    _box.put(_kWerdPagesKey, state);
+  }
+
+  void reset() {
+    state = 0;
+    _box.put(_kWerdPagesKey, state);
+  }
+
+  void _ensureDailyReset() {
+    final today = _todayQuranKey();
+    final storedDay = _box.get(_kDayKey) as String?;
+
+    if (storedDay != today) {
+      _box.put(_kDayKey, today);
+      _box.put(_kWerdPagesKey, 0);
+      _box.put(_kAzkarCountsKey, <String, int>{});
+      state = 0;
+    }
+  }
 }
 
 final werdProvider = NotifierProvider<WerdNotifier, int>(WerdNotifier.new);
@@ -87,17 +137,53 @@ final activeSurahAyatProvider = FutureProvider<List<AyahModel>>((ref) async {
 });
 
 class AzkarNotifier extends Notifier<List<ZikrModel>> {
+  Box<dynamic> get _box => Hive.box(kQuranDailyBoxName);
+
   @override
-  List<ZikrModel> build() => buildAzkar();
+  List<ZikrModel> build() {
+    ref.watch(quranDayTickerProvider);
+
+    final today = _todayQuranKey();
+    final storedDay = _box.get(_kDayKey) as String?;
+    if (storedDay != today) {
+      _box.put(_kDayKey, today);
+      _box.put(_kAzkarCountsKey, <String, int>{});
+      return buildAzkar();
+    }
+
+    final base = buildAzkar();
+    final countsRaw = _box.get(_kAzkarCountsKey);
+    if (countsRaw is Map) {
+      final counts = countsRaw.map((key, value) =>
+          MapEntry(key.toString(), (value as num?)?.toInt() ?? 0));
+
+      return [
+        for (final z in base)
+          if (counts.containsKey(z.id)) z.copyWith(count: counts[z.id]!) else z,
+      ];
+    }
+
+    return base;
+  }
 
   void tap(String id) {
     state = [
       for (final z in state)
         if (z.id == id && !z.isDone) z.copyWith(count: z.count + 1) else z,
     ];
+    _persistCounts();
   }
 
-  void resetAll() => state = buildAzkar();
+  void resetAll() {
+    state = buildAzkar();
+    _persistCounts();
+  }
+
+  void _persistCounts() {
+    _box.put(_kAzkarCountsKey, {
+      for (final z in state) z.id: z.count,
+    });
+  }
 }
 
 final azkarProvider =
@@ -118,6 +204,8 @@ final azkarProgressProvider = Provider<(int done, int total)>((ref) {
 });
 
 final ayahOfDayProvider = FutureProvider<AyahOfDay>((ref) async {
+  ref.watch(quranDayTickerProvider).valueOrNull;
+
   try {
     return await ref.read(quranApiServiceProvider).fetchAyahOfTheDay();
   } catch (_) {

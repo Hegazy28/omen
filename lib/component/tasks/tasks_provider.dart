@@ -4,6 +4,15 @@ import 'package:omen/component/tasks/task_model.dart';
 import 'package:omen/component/tasks/tasks_sample_data.dart';
 
 const String kTasksBoxName = 'tasks_box';
+const String _kTasksStorageKey = 'tasks';
+const String _kTasksLastDayKey = 'tasks_last_day';
+
+final tasksDayTickerProvider = StreamProvider<String>((ref) async* {
+  while (true) {
+    yield todayTaskDayKey();
+    await Future<void>.delayed(const Duration(minutes: 1));
+  }
+});
 
 Future<void> initTasksStorage() async {
   await Hive.initFlutter();
@@ -17,16 +26,46 @@ class TasksNotifier extends Notifier<List<TaskModel>> {
 
   @override
   List<TaskModel> build() {
-    final stored = _box.get('tasks');
-    if (stored is List) {
-      return stored
-          .whereType<Map>()
-          .map((entry) => TaskModel.fromMap(entry))
-          .toList();
-    }
+    ref.watch(tasksDayTickerProvider);
 
-    _save(kSampleTasks);
-    return kSampleTasks;
+    final today = todayTaskDayKey();
+    final stored = _box.get(_kTasksStorageKey);
+
+    final loaded = stored is List
+        ? stored
+            .whereType<Map>()
+            .map((entry) => TaskModel.fromMap(entry))
+            .toList()
+        : kSampleTasks
+            .map((task) => task.copyWith(createdDayKey: today, isCarryOver: false))
+            .toList();
+
+    final normalized = loaded
+        .map((task) {
+          final day = task.createdDayKey.isEmpty ? today : task.createdDayKey;
+          return task.copyWith(createdDayKey: day);
+        })
+        .toList();
+
+    final rolled = _rolloverIfNewDay(normalized, today: today);
+    _save(rolled);
+    _box.put(_kTasksLastDayKey, today);
+    return rolled;
+  }
+
+  List<TaskModel> _rolloverIfNewDay(List<TaskModel> tasks, {required String today}) {
+    final lastDay = (_box.get(_kTasksLastDayKey) as String?) ?? today;
+    if (lastDay == today) return tasks;
+
+    return [
+      for (final task in tasks)
+        if (!task.isCompleted)
+          task.copyWith(
+            isCompleted: false,
+            isCarryOver: task.createdDayKey != today,
+            createdDayKey: task.createdDayKey.isEmpty ? lastDay : task.createdDayKey,
+          ),
+    ];
   }
 
   void addTask({
@@ -47,12 +86,13 @@ class TasksNotifier extends Notifier<List<TaskModel>> {
       comments: comments.where((c) => c.trim().isNotEmpty).map((c) => c.trim()).toList(),
       priority: priority,
       section: section,
+      createdDayKey: todayTaskDayKey(),
+      isCarryOver: false,
     );
 
     state = [...state, newTask];
     _save(state);
   }
-
 
   void updateTask({
     required String id,
@@ -110,7 +150,7 @@ class TasksNotifier extends Notifier<List<TaskModel>> {
   }
 
   void _save(List<TaskModel> tasks) {
-    _box.put('tasks', tasks.map((task) => task.toMap()).toList());
+    _box.put(_kTasksStorageKey, tasks.map((task) => task.toMap()).toList());
   }
 }
 
@@ -123,8 +163,14 @@ final taskSearchQueryProvider = StateProvider<String>((_) => '');
 final taskPriorityFilterProvider = StateProvider<TaskPriority?>((_) => null);
 final taskSectionFocusProvider = StateProvider<TaskSection?>((_) => null);
 
-final filteredTasksProvider = Provider<List<TaskModel>>((ref) {
+final carryOverTasksProvider = Provider<List<TaskModel>>((ref) {
   final tasks = ref.watch(tasksProvider);
+  return tasks.where((t) => t.isCarryOver && !t.isCompleted).toList()
+    ..sort((a, b) => a.time.compareTo(b.time));
+});
+
+final filteredTasksProvider = Provider<List<TaskModel>>((ref) {
+  final tasks = ref.watch(tasksProvider).where((t) => !t.isCarryOver).toList();
   final baseFilter = ref.watch(taskFilterProvider);
   final query = ref.watch(taskSearchQueryProvider).trim().toLowerCase();
   final priority = ref.watch(taskPriorityFilterProvider);
@@ -158,7 +204,7 @@ final groupedTasksProvider = Provider<Map<TaskSection, List<TaskModel>>>((ref) {
 });
 
 final taskProgressProvider = Provider<double>((ref) {
-  final tasks = ref.watch(tasksProvider);
+  final tasks = ref.watch(tasksProvider).where((t) => !t.isCarryOver).toList();
   if (tasks.isEmpty) return 0;
   return tasks.where((t) => t.isCompleted).length / tasks.length;
 });

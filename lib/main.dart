@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omen/component/bg.dart';
 import 'package:omen/component/profile/user_profile_provider.dart';
 import 'package:omen/component/tasks/tasks_provider.dart';
+import 'package:omen/component/quran/quran_providers.dart';
 import 'package:omen/core/myAssets.dart';
 import 'package:omen/core/myColors.dart';
 import 'package:omen/core/myFonts.dart';
@@ -22,6 +23,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   await initTasksStorage();
+  await initQuranDailyStorage();
   await initUserProfileStorage();
 
   windowManager.waitUntilReadyToShow().then((_) async {

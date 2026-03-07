@@ -16,14 +16,15 @@ class TasksWidget extends ConsumerWidget {
     final grouped = ref.watch(groupedTasksProvider);
     final progress = ref.watch(taskProgressProvider);
     final allTasks = ref.watch(tasksProvider);
-    final completed = allTasks.where((t) => t.isCompleted).length;
+    final carryOver = ref.watch(carryOverTasksProvider);
+    final completed = allTasks.where((t) => t.isCompleted && !t.isCarryOver).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _TopBar(
           completedCount: completed,
-          totalCount: allTasks.length,
+          totalCount: allTasks.where((t) => !t.isCarryOver).length,
         ),
         const SizedBox(height: 12),
         const _SmartControls(),
@@ -31,8 +32,12 @@ class TasksWidget extends ConsumerWidget {
         TasksProgressBar(
           progress: progress,
           completed: completed,
-          total: allTasks.length,
+          total: allTasks.where((t) => !t.isCarryOver).length,
         ),
+        if (carryOver.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _CarryOverPanel(tasks: carryOver),
+        ],
         const SizedBox(height: 16),
         Expanded(
           child: _ColumnsRow(grouped: grouped),
@@ -450,6 +455,61 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
           child: const Text('Add'),
         ),
       ],
+    );
+  }
+}
+
+class _CarryOverPanel extends ConsumerWidget {
+  final List<TaskModel> tasks;
+
+  const _CarryOverPanel({required this.tasks});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: TaskDecorations.glassCard(radius: BorderRadius.circular(14)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.history_toggle_off_rounded, size: 18, color: TaskColors.priorityMed),
+              const SizedBox(width: 8),
+              Text('Carry-over tasks (not completed yesterday)',
+                  style: TaskTextStyles.label(13, color: TaskColors.priorityMed)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: tasks
+                .map((task) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: TaskColors.glassBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(task.title, style: TaskTextStyles.body(11, color: TaskColors.text1)),
+                          const SizedBox(width: 8),
+                          Text(task.time, style: TaskTextStyles.mono(10, color: TaskColors.text3)),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => ref.read(tasksProvider.notifier).toggleCompleted(task.id),
+                            child: const Icon(Icons.check_circle_outline_rounded, size: 16, color: TaskColors.success),
+                          ),
+                        ],
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -18,6 +18,11 @@ TaskSection taskSectionFromString(String value) {
   );
 }
 
+String todayTaskDayKey() {
+  final now = DateTime.now();
+  return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+}
+
 String formatTaskTime12h(String raw) {
   final value = raw.trim();
   if (value.isEmpty) return value;
@@ -70,6 +75,8 @@ class TaskModel {
   final TaskSection section;
   final bool isCompleted;
   final bool isStarred;
+  final String createdDayKey;
+  final bool isCarryOver;
 
   const TaskModel({
     required this.id,
@@ -82,7 +89,43 @@ class TaskModel {
     required this.section,
     this.isCompleted = false,
     this.isStarred = false,
-  });
+    String? createdDayKey,
+    this.isCarryOver = false,
+  }) : createdDayKey = createdDayKey ??
+            '';
+
+  factory TaskModel.fromMap(Map<dynamic, dynamic> map) {
+    return TaskModel(
+      id: map['id'] as String,
+      title: map['title'] as String,
+      subtitle: map['subtitle'] as String?,
+      notes: map['notes'] as String?,
+      comments: (map['comments'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
+      time: formatTaskTime12h(map['time'] as String? ?? ''),
+      priority: taskPriorityFromString(map['priority'] as String? ?? ''),
+      section: taskSectionFromString(map['section'] as String? ?? ''),
+      isCompleted: map['isCompleted'] as bool? ?? false,
+      isStarred: map['isStarred'] as bool? ?? false,
+      createdDayKey: (map['createdDayKey'] as String?) ?? todayTaskDayKey(),
+      isCarryOver: map['isCarryOver'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'title': title,
+        'subtitle': subtitle,
+        'notes': notes,
+        'comments': comments,
+        'time': time,
+        'priority': priority.name,
+        'section': section.name,
+        'isCompleted': isCompleted,
+        'isStarred': isStarred,
+        'createdDayKey': createdDayKey,
+        'isCarryOver': isCarryOver,
+      };
 
   factory TaskModel.fromMap(Map<dynamic, dynamic> map) {
     return TaskModel(
@@ -123,6 +166,8 @@ class TaskModel {
     TaskSection? section,
     bool? isCompleted,
     bool? isStarred,
+    String? createdDayKey,
+    bool? isCarryOver,
   }) {
     return TaskModel(
       id: id,
@@ -135,6 +180,8 @@ class TaskModel {
       section: section ?? this.section,
       isCompleted: isCompleted ?? this.isCompleted,
       isStarred: isStarred ?? this.isStarred,
+      createdDayKey: createdDayKey ?? this.createdDayKey,
+      isCarryOver: isCarryOver ?? this.isCarryOver,
     );
   }
 
