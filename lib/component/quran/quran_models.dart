@@ -33,8 +33,9 @@ class SurahModel {
 class AyahModel {
   final int number;         // within surah
   final String text;        // Arabic text
+  final int? page;          // mushaf page if available
 
-  const AyahModel({required this.number, required this.text});
+  const AyahModel({required this.number, required this.text, this.page});
 }
 
 // ── Reading position ──────────────────────────────────────

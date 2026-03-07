@@ -25,6 +25,7 @@ class QuranApiService {
           (ayah) => AyahModel(
             number: (ayah['numberInSurah'] as num?)?.toInt() ?? 0,
             text: (ayah['text'] ?? '').toString(),
+            page: (ayah['page'] as num?)?.toInt(),
           ),
         )
         .where((ayah) => ayah.text.isNotEmpty)

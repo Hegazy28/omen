@@ -42,7 +42,10 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.surah.name, style: QuranTextStyles.surahName),
-            Text(widget.surah.ename, style: QuranTextStyles.body(10, color: QuranColors.text3)),
+            Text(
+              widget.surah.ename,
+              style: QuranTextStyles.body(10, color: QuranColors.text3),
+            ),
           ],
         ),
         backgroundColor: Colors.transparent,
@@ -53,41 +56,7 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
           child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0x1AF4EBD6),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x55D9C09A)),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '${widget.surah.ename}  •  ${widget.surah.ayatCount} آية  •  ${widget.surah.type == SurahType.makki ? 'مكية' : 'مدنية'}',
-                      style: QuranTextStyles.body(12, color: QuranColors.text3),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Text('A-', style: QuranTextStyles.mono(11, color: QuranColors.text3)),
-                        Expanded(
-                          child: Slider(
-                            value: fontSize,
-                            min: 20,
-                            max: 44,
-                            divisions: 12,
-                            activeColor: QuranColors.gold,
-                            inactiveColor: QuranColors.border,
-                            onChanged: (value) =>
-                                ref.read(surahFontSizeProvider.notifier).state = value,
-                          ),
-                        ),
-                        Text('A+', style: QuranTextStyles.mono(14, color: QuranColors.text3)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              _ReaderHeader(surah: widget.surah, fontSize: fontSize),
               const SizedBox(height: 14),
               Expanded(
                 child: ayatAsync.when(
@@ -108,68 +77,28 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
                       );
                     }
 
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xFFF8F1DD), Color(0xFFF3E5C7)],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFCFB48A), width: 1.2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xAA3F2E19).withOpacity(0.25),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                    final pageGroups = _groupAyatByPage(ayat);
+                    final totalPages = pageGroups.length;
+
+                    return ListView.builder(
+                      itemCount: totalPages,
+                      itemBuilder: (_, index) {
+                        final entry = pageGroups[index];
+                        final pageNumber = entry.$1;
+                        final pageAyat = entry.$2;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _QuranPageCard(
+                            pageNumber: pageNumber,
+                            pageIndex: index + 1,
+                            totalPages: totalPages,
+                            showBismillah: index == 0 && widget.surah.id != 9,
+                            ayat: pageAyat,
+                            fontSize: fontSize,
+                            surahId: widget.surah.id,
                           ),
-                        ],
-                      ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            if (widget.surah.id != 9)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 14),
-                                child: Text(
-                                  'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
-                                  textDirection: TextDirection.rtl,
-                                  textAlign: TextAlign.center,
-                                  style: QuranTextStyles.quranText.copyWith(
-                                    color: const Color(0xFF4A3320),
-                                    fontSize: fontSize - 2,
-                                    height: 2,
-                                  ),
-                                ),
-                              ),
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 14),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0DFC2),
-                                borderRadius: BorderRadius.circular(40),
-                                border: Border.all(color: const Color(0xFFC39A63), width: 1),
-                              ),
-                              child: Text(
-                                '﷽  Surah ${widget.surah.id}',
-                                style: QuranTextStyles.mono(10, color: const Color(0xFF6A4B2A)),
-                              ),
-                            ),
-                            Text.rich(
-                              TextSpan(children: _buildAyahSpans(ayat, fontSize)),
-                              textDirection: TextDirection.rtl,
-                              textAlign: TextAlign.justify,
-                              style: QuranTextStyles.quranText.copyWith(
-                                fontSize: fontSize,
-                                height: 2.1,
-                                color: const Color(0xFF17120B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -181,14 +110,157 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
     );
   }
 
-  List<InlineSpan> _buildAyahSpans(List<AyahModel> ayat, double fontSize) {
+  List<(int, List<AyahModel>)> _groupAyatByPage(List<AyahModel> ayat) {
+    final grouped = <int, List<AyahModel>>{};
+
+    for (final a in ayat) {
+      final page = a.page ?? widget.surah.page;
+      grouped.putIfAbsent(page, () => []).add(a);
+    }
+
+    final pages = grouped.keys.toList()..sort();
+    return pages.map((p) => (p, grouped[p]!)).toList();
+  }
+}
+
+class _ReaderHeader extends ConsumerWidget {
+  final SurahModel surah;
+  final double fontSize;
+
+  const _ReaderHeader({required this.surah, required this.fontSize});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0x1AF4EBD6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0x55D9C09A)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '${surah.ename}  •  ${surah.ayatCount} آية  •  ${surah.type == SurahType.makki ? 'مكية' : 'مدنية'}',
+            style: QuranTextStyles.body(12, color: QuranColors.text3),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text('A-', style: QuranTextStyles.mono(11, color: QuranColors.text3)),
+              Expanded(
+                child: Slider(
+                  value: fontSize,
+                  min: 20,
+                  max: 44,
+                  divisions: 12,
+                  activeColor: QuranColors.gold,
+                  inactiveColor: QuranColors.border,
+                  onChanged: (value) =>
+                      ref.read(surahFontSizeProvider.notifier).state = value,
+                ),
+              ),
+              Text('A+', style: QuranTextStyles.mono(14, color: QuranColors.text3)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuranPageCard extends StatelessWidget {
+  final int pageNumber;
+  final int pageIndex;
+  final int totalPages;
+  final bool showBismillah;
+  final List<AyahModel> ayat;
+  final double fontSize;
+  final int surahId;
+
+  const _QuranPageCard({
+    required this.pageNumber,
+    required this.pageIndex,
+    required this.totalPages,
+    required this.showBismillah,
+    required this.ayat,
+    required this.fontSize,
+    required this.surahId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFF8F1DD), Color(0xFFF3E5C7)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFCFB48A), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xAA3F2E19).withOpacity(0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0DFC2),
+              borderRadius: BorderRadius.circular(40),
+              border: Border.all(color: const Color(0xFFC39A63), width: 1),
+            ),
+            child: Text(
+              'الصفحة $pageNumber  •  $pageIndex/$totalPages',
+              style: QuranTextStyles.mono(10, color: const Color(0xFF6A4B2A)),
+            ),
+          ),
+          if (showBismillah)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Text(
+                'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.center,
+                style: QuranTextStyles.quranText.copyWith(
+                  color: const Color(0xFF4A3320),
+                  fontSize: fontSize - 2,
+                  height: 2,
+                ),
+              ),
+            ),
+          Text.rich(
+            TextSpan(children: _buildAyahSpans()),
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.justify,
+            style: QuranTextStyles.quranText.copyWith(
+              fontSize: fontSize,
+              height: 2.1,
+              color: const Color(0xFF17120B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<InlineSpan> _buildAyahSpans() {
     final spans = <InlineSpan>[];
     for (final ayah in ayat) {
       final text = _readableAyahText(ayah);
       spans.add(TextSpan(text: '$text '));
       spans.add(
         TextSpan(
-          text: '۝${ayah.number} ',
+          text: '${_ornateAyahNumber(ayah.number)} ',
           style: QuranTextStyles.quranText.copyWith(
             color: const Color(0xFF6A4B2A),
             fontSize: fontSize - 6,
@@ -202,9 +274,24 @@ class _SurahReaderScreenState extends ConsumerState<SurahReaderScreen> {
 
   String _readableAyahText(AyahModel ayah) {
     try {
-      return quran.getVerse(widget.surah.id, ayah.number, verseEndSymbol: false);
+      return quran.getVerse(surahId, ayah.number, verseEndSymbol: false);
     } catch (_) {
       return ayah.text;
     }
+  }
+
+  String _ornateAyahNumber(int number) {
+    final arabicIndic = _toArabicIndic(number);
+    return '﴿$arabicIndic﴾';
+  }
+
+  String _toArabicIndic(int value) {
+    const latin = '0123456789';
+    const arabic = '٠١٢٣٤٥٦٧٨٩';
+    return value
+        .toString()
+        .split('')
+        .map((digit) => arabic[latin.indexOf(digit)])
+        .join();
   }
 }
