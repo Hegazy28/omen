@@ -13,50 +13,55 @@ class SportsrcMatchesService {
       throw Exception('Failed to fetch matches (${response.statusCode})');
     }
 
-    if (response.body.trim().isEmpty) {
-      return const [];
-    }
+    final body = response.body.trim();
+    if (body.isEmpty) return const [];
 
-    final decoded = jsonDecode(response.body);
-    final rawEvents = _extractPotentialEvents(decoded);
+    final decoded = jsonDecode(body);
+    final rawEvents = _extractEvents(decoded);
 
-    final matches = rawEvents
-        .map(_toMatch)
-        .whereType<MatchModel>()
-        .toList();
+    final matches = rawEvents.map(_toMatch).whereType<MatchModel>().toList();
 
-    // Deduplicate by generated id.
-    final byId = <String, MatchModel>{};
+    final unique = <String, MatchModel>{};
     for (final match in matches) {
-      byId[match.id] = match;
+      unique[match.id] = match;
     }
 
-    return byId.values.toList();
+    final output = unique.values.toList()
+      ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
+    return output;
   }
 
-  List<Map<String, dynamic>> _extractPotentialEvents(dynamic node) {
+  List<Map<String, dynamic>> _extractEvents(dynamic decoded) {
+    if (decoded is Map<String, dynamic>) {
+      final data = decoded['data'];
+      if (data is List) {
+        return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    }
+
+    // Fallback to permissive recursive extraction.
     final found = <Map<String, dynamic>>[];
 
-    void walk(dynamic current) {
-      if (current is List) {
-        for (final item in current) {
+    void walk(dynamic node) {
+      if (node is List) {
+        for (final item in node) {
           walk(item);
         }
         return;
       }
 
-      if (current is Map<String, dynamic>) {
-        if (_looksLikeEvent(current)) {
-          found.add(current);
+      if (node is Map) {
+        final json = Map<String, dynamic>.from(node);
+        if (_looksLikeEvent(json)) {
+          found.add(json);
         }
-
-        for (final value in current.values) {
+        for (final value in json.values) {
           walk(value);
         }
       }
     }
 
-    walk(node);
+    walk(decoded);
     return found;
   }
 
@@ -72,172 +77,117 @@ class SportsrcMatchesService {
     if (homeName.isEmpty || awayName.isEmpty) return null;
 
     final kickoff = _extractKickoff(json);
-    final status = _statusFrom(_extractString(json, const [
-      'status',
-      'strStatus',
-      'match_status',
-      'state',
-    ]).toLowerCase());
+    final status = _statusFrom(
+      _extractString(json, const ['status', 'state', 'match_status']).toLowerCase(),
+    );
 
-    final parsedScore = _extractScore(json);
+    final score = _extractScore(json);
     final homeLogo = _extractTeamLogo(json, isHome: true);
     final awayLogo = _extractTeamLogo(json, isHome: false);
+
     final league = _extractString(json, const [
       'league',
-      'strLeague',
       'competition',
       'tournament',
-      'matchType',
+      'category',
     ]);
 
     final home = TeamModel(
-      id: homeName.toLowerCase().replaceAll(' ', '_'),
+      id: _teamId(homeName),
       name: homeName,
       shortName: _shortName(homeName),
       logoAsset: homeLogo.isNotEmpty ? homeLogo : 'assets/Logo.png',
     );
 
     final away = TeamModel(
-      id: awayName.toLowerCase().replaceAll(' ', '_'),
+      id: _teamId(awayName),
       name: awayName,
       shortName: _shortName(awayName),
       logoAsset: awayLogo.isNotEmpty ? awayLogo : 'assets/Logo.png',
     );
 
-    final eventId = _extractString(json, const [
-      'id',
-      'idEvent',
-      'event_id',
-      'match_id',
-      'fixture_id',
-    ]);
+    final eventId = _extractString(json, const ['id', 'event_id', 'match_id']);
 
     return MatchModel(
-      id: eventId.isNotEmpty
-          ? eventId
-          : '$homeName-$awayName-${kickoff.toIso8601String()}',
+      id: eventId.isNotEmpty ? eventId : '${_teamId(homeName)}-${_teamId(awayName)}-${kickoff.millisecondsSinceEpoch}',
       home: home,
       away: away,
       competition: _competitionFrom(league),
       status: status,
       kickoff: kickoff,
-      homeScore: status == MatchStatus.upcoming ? null : parsedScore.$1,
-      awayScore: status == MatchStatus.upcoming ? null : parsedScore.$2,
+      homeScore: status == MatchStatus.upcoming ? null : score.$1,
+      awayScore: status == MatchStatus.upcoming ? null : score.$2,
       isFavouriteMatch:
-          homeName.toLowerCase().contains('barcelona') ||
-          awayName.toLowerCase().contains('barcelona'),
+          homeName.toLowerCase().contains('barcelona') || awayName.toLowerCase().contains('barcelona'),
     );
   }
 
   DateTime _extractKickoff(Map<String, dynamic> json) {
-    final date = _extractString(json, const [
-      'date',
-      'dateEvent',
-      'dateEventLocal',
-      'dateEventUTC',
+    final rawDate = json['date'];
+
+    if (rawDate is int) {
+      // Sportsrc uses Unix epoch in milliseconds.
+      return DateTime.fromMillisecondsSinceEpoch(rawDate, isUtc: true).toLocal();
+    }
+
+    if (rawDate is String && rawDate.trim().isNotEmpty) {
+      final asInt = int.tryParse(rawDate.trim());
+      if (asInt != null) {
+        final millis = rawDate.trim().length >= 13 ? asInt : asInt * 1000;
+        return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal();
+      }
+
+      final parsed = DateTime.tryParse(rawDate.trim());
+      if (parsed != null) return parsed.toLocal();
+    }
+
+    final fallbackRaw = _extractString(json, const [
       'kickoff',
       'startTime',
       'datetime',
       'commence_time',
     ]);
-
-    final time = _extractString(json, const [
-      'time',
-      'strTime',
-      'timeEvent',
-    ]);
-
-    final dateTimeCandidates = <String>[
-      if (date.isNotEmpty && time.isNotEmpty) '$date $time',
-      if (date.isNotEmpty) date,
-      if (time.isNotEmpty) time,
-    ];
-
-    for (final candidate in dateTimeCandidates) {
-      final parsed = DateTime.tryParse(candidate.replaceFirst(' ', 'T')) ??
-          DateTime.tryParse(candidate);
-      if (parsed != null) return parsed.toLocal();
-    }
+    final fallback = DateTime.tryParse(fallbackRaw);
+    if (fallback != null) return fallback.toLocal();
 
     return DateTime.now();
   }
 
   (int?, int?) _extractScore(Map<String, dynamic> json) {
-    final homeRaw = _extractString(json, const [
-      'homeScore',
-      'intHomeScore',
-      'scoreHome',
-      'home_score',
-    ]);
-    final awayRaw = _extractString(json, const [
-      'awayScore',
-      'intAwayScore',
-      'scoreAway',
-      'away_score',
-    ]);
+    final homeRaw = _extractString(json, const ['homeScore', 'scoreHome', 'home_score']);
+    final awayRaw = _extractString(json, const ['awayScore', 'scoreAway', 'away_score']);
 
-    final directHome = int.tryParse(homeRaw);
-    final directAway = int.tryParse(awayRaw);
-    if (directHome != null || directAway != null) {
-      return (directHome, directAway);
-    }
+    final home = int.tryParse(homeRaw);
+    final away = int.tryParse(awayRaw);
+    if (home != null || away != null) return (home, away);
 
-    final scoreText = _extractString(json, const [
-      'score',
-      'strScore',
-      'result',
-    ]);
+    final scoreText = _extractString(json, const ['score', 'result']);
     final parts = scoreText.split(RegExp(r'\s*[-:]\s*'));
-    final home = int.tryParse(parts.isNotEmpty ? parts.first : '');
-    final away = int.tryParse(parts.length > 1 ? parts[1] : '');
-    return (home, away);
+    return (
+      int.tryParse(parts.isNotEmpty ? parts.first : ''),
+      int.tryParse(parts.length > 1 ? parts[1] : ''),
+    );
   }
 
   String _extractTeamName(Map<String, dynamic> json, {required bool isHome}) {
-    final keys = isHome
-        ? const [
-            'homeTeam',
-            'home',
-            'teamA',
-            'strHomeTeam',
-            'home_name',
-            'localteam_name',
-          ]
-        : const [
-            'awayTeam',
-            'away',
-            'teamB',
-            'strAwayTeam',
-            'away_name',
-            'visitorteam_name',
-          ];
+    final directKeys = isHome
+        ? const ['homeTeam', 'home', 'strHomeTeam', 'home_name']
+        : const ['awayTeam', 'away', 'strAwayTeam', 'away_name'];
 
-    for (final key in keys) {
+    for (final key in directKeys) {
       final value = json[key];
       if (value is String && value.trim().isNotEmpty) return value.trim();
-      if (value is Map<String, dynamic>) {
-        final nested = _extractString(value, const [
-          'name',
-          'team_name',
-          'shortName',
-          'displayName',
-          'title',
-        ]);
+      if (value is Map) {
+        final nested = _extractString(Map<String, dynamic>.from(value), const ['name', 'team_name', 'title']);
         if (nested.isNotEmpty) return nested;
       }
     }
 
-    final nestedSide = json['teams'];
-    if (nestedSide is Map<String, dynamic>) {
-      final side = nestedSide[isHome ? 'home' : 'away'];
-      if (side is Map<String, dynamic>) {
-        final nested = _extractString(side, const [
-          'name',
-          'team_name',
-          'shortName',
-          'displayName',
-          'title',
-        ]);
+    final teams = json['teams'];
+    if (teams is Map) {
+      final side = teams[isHome ? 'home' : 'away'];
+      if (side is Map) {
+        final nested = _extractString(Map<String, dynamic>.from(side), const ['name', 'team_name', 'title']);
         if (nested.isNotEmpty) return nested;
       }
     }
@@ -245,36 +195,22 @@ class SportsrcMatchesService {
     return '';
   }
 
-
   String _extractTeamLogo(Map<String, dynamic> json, {required bool isHome}) {
     final keys = isHome
-        ? const [
-            'homeLogo',
-            'home_logo',
-            'strHomeTeamBadge',
-            'homeBadge',
-            'homeCrest',
-          ]
-        : const [
-            'awayLogo',
-            'away_logo',
-            'strAwayTeamBadge',
-            'awayBadge',
-            'awayCrest',
-          ];
+        ? const ['homeLogo', 'home_logo', 'homeBadge', 'homeCrest']
+        : const ['awayLogo', 'away_logo', 'awayBadge', 'awayCrest'];
 
     final direct = _extractString(json, keys);
     if (_isUrl(direct)) return direct;
 
-    final nestedSide = json['teams'];
-    if (nestedSide is Map<String, dynamic>) {
-      final side = nestedSide[isHome ? 'home' : 'away'];
-      if (side is Map<String, dynamic>) {
-        final nested = _extractString(side, const [
-          'logo',
+    final teams = json['teams'];
+    if (teams is Map) {
+      final side = teams[isHome ? 'home' : 'away'];
+      if (side is Map) {
+        final nested = _extractString(Map<String, dynamic>.from(side), const [
           'badge',
+          'logo',
           'crest',
-          'strTeamBadge',
           'image',
           'icon',
         ]);
@@ -282,24 +218,8 @@ class SportsrcMatchesService {
       }
     }
 
-    final teamNode = json[isHome ? 'homeTeam' : 'awayTeam'];
-    if (teamNode is Map<String, dynamic>) {
-      final nested = _extractString(teamNode, const [
-        'logo',
-        'badge',
-        'crest',
-        'strTeamBadge',
-        'image',
-        'icon',
-      ]);
-      if (_isUrl(nested)) return nested;
-    }
-
     return '';
   }
-
-  bool _isUrl(String value) =>
-      value.startsWith('http://') || value.startsWith('https://');
 
   String _extractString(Map<String, dynamic> json, List<String> keys) {
     for (final key in keys) {
@@ -309,6 +229,16 @@ class SportsrcMatchesService {
       if (text.isNotEmpty && text.toLowerCase() != 'null') return text;
     }
     return '';
+  }
+
+  bool _isUrl(String value) => value.startsWith('http://') || value.startsWith('https://');
+
+  String _teamId(String name) {
+    return name
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
   }
 
   String _shortName(String value) {
@@ -321,17 +251,10 @@ class SportsrcMatchesService {
   }
 
   MatchStatus _statusFrom(String raw) {
-    if (raw.contains('live') ||
-        raw.contains('progress') ||
-        raw.contains('1h') ||
-        raw.contains('2h') ||
-        raw.contains('in_play')) {
+    if (raw.contains('live') || raw.contains('progress') || raw.contains('in_play')) {
       return MatchStatus.live;
     }
-    if (raw.contains('finished') ||
-        raw == 'ft' ||
-        raw.contains('ended') ||
-        raw.contains('full')) {
+    if (raw.contains('finished') || raw == 'ft' || raw.contains('ended')) {
       return MatchStatus.finished;
     }
     return MatchStatus.upcoming;
@@ -340,25 +263,16 @@ class SportsrcMatchesService {
   MatchCompetition _competitionFrom(String raw) {
     final value = raw.toLowerCase();
 
-    final isPremier = value.contains('premier') ||
-        value.contains('english league') ||
-        value.contains('epl') ||
-        value.contains('eng.1') ||
-        value.contains('pl ');
-    if (isPremier) return MatchCompetition.premierLeague;
-
-    final isLaLiga = value.contains('la liga') ||
-        value.contains('laliga') ||
-        value.contains('primera') ||
-        value.contains('spanish league') ||
-        value.contains('esp.1') ||
-        value.contains('liga');
-    if (isLaLiga) return MatchCompetition.laLiga;
-
+    if (value.contains('premier') || value.contains('epl') || value.contains('eng.1')) {
+      return MatchCompetition.premierLeague;
+    }
+    if (value.contains('la liga') || value.contains('laliga') || value.contains('primera') || value.contains('esp.1')) {
+      return MatchCompetition.laLiga;
+    }
     if (value.contains('champions')) return MatchCompetition.championsLeague;
     if (value.contains('copa')) return MatchCompetition.copaDelRey;
     if (value.contains('super')) return MatchCompetition.supercopa;
-    if (value.contains('friend')) return MatchCompetition.friendly;
+
     return MatchCompetition.friendly;
   }
 }
