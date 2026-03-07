@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omen/component/quran/quran_providers.dart';
 import 'quran_theme.dart';
+import 'package:omen/ui/quran_screen/surah_reader_screen.dart';
 
 class ContinueReadingCard extends ConsumerWidget {
   const ContinueReadingCard({super.key});
@@ -17,7 +18,14 @@ class ContinueReadingCard extends ConsumerWidget {
     if (surah == null) return const SizedBox.shrink();
 
     return GestureDetector(
-      onTap: () => ref.read(activeSurahProvider.notifier).state = surah,
+      onTap: () {
+        ref.read(activeSurahProvider.notifier).state = surah;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SurahReaderScreen(surah: surah),
+          ),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: QuranDecorations.emeraldCard(),
