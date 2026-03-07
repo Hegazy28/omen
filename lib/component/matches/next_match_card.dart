@@ -8,6 +8,7 @@ import 'match_model.dart';
 import 'matches_theme.dart';
 import 'team_crest.dart';
 import 'competition_badge.dart';
+import 'match_time_utils.dart';
 
 class NextMatchCard extends StatefulWidget {
   final MatchModel match;
@@ -36,31 +37,11 @@ class _NextMatchCardState extends State<NextMatchCard> {
   }
 
   void _updateRemaining() {
-    final diff = widget.match.kickoff.difference(DateTime.now());
+    final diff = widget.match.kickoff.difference(DateTime.now().toUtc());
     setState(() => _remaining = diff.isNegative ? Duration.zero : diff);
   }
 
-  String _twoDigit(int n) => n.toString().padLeft(2, '0');
-
-  String get _dateLabel {
-    final d = widget.match.kickoff;
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${d.day} ${months[d.month - 1]} · '
-        '${_twoDigit(d.hour)}:${_twoDigit(d.minute)}';
-  }
+  String get _dateLabel => formatCairoDateTimeShort(widget.match.kickoff);
 
   @override
   Widget build(BuildContext context) {
