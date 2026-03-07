@@ -48,6 +48,9 @@ class MatchModel {
   /// Whether either team is the user's favourite
   final bool isFavouriteMatch;
 
+  /// API/editorial importance (e.g. popular fixtures)
+  final bool isImportant;
+
   const MatchModel({
     required this.id,
     required this.home,
@@ -59,6 +62,7 @@ class MatchModel {
     this.awayScore,
     this.minutePlayed,
     this.isFavouriteMatch = false,
+    this.isImportant = false,
   });
 
   bool get isBarcelona => home.id == 'fcb' || away.id == 'fcb';

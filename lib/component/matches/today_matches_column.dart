@@ -13,6 +13,7 @@ class TodayMatchesColumn extends StatelessWidget {
   final List<MatchModel> upcoming;
   final List<MatchModel> finished;
   final List<MatchModel> yesterday;
+  final List<MatchModel> important;
 
   const TodayMatchesColumn({
     super.key,
@@ -20,10 +21,11 @@ class TodayMatchesColumn extends StatelessWidget {
     required this.upcoming,
     required this.finished,
     required this.yesterday,
+    this.important = const [],
   });
 
   bool get _isEmpty =>
-      live.isEmpty && upcoming.isEmpty && finished.isEmpty && yesterday.isEmpty;
+      live.isEmpty && upcoming.isEmpty && finished.isEmpty && yesterday.isEmpty && important.isEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +47,12 @@ class TodayMatchesColumn extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
+        if (important.isNotEmpty) ...[
+          _SectionLabel(label: 'Important', color: MatchColors.draw),
+          const SizedBox(height: 8),
+          ...important.map((m) => MatchRowCard(match: m)),
+          const SizedBox(height: 16),
+        ],
         if (live.isNotEmpty) ...[
           _SectionLabel(label: 'Live Now', color: MatchColors.live),
           const SizedBox(height: 8),

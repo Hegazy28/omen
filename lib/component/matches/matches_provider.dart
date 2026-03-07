@@ -34,11 +34,6 @@ final matchViewScopeProvider =
 final matchLeagueCategoryProvider =
     StateProvider<MatchLeagueCategory>((_) => MatchLeagueCategory.all);
 
-bool _isImportantLeague(MatchCompetition competition) {
-  return competition == MatchCompetition.laLiga ||
-      competition == MatchCompetition.premierLeague;
-}
-
 final visibleMatchesProvider = Provider<List<MatchModel>>((ref) {
   final all = ref.watch(matchesProvider);
   final scope = ref.watch(matchViewScopeProvider);
@@ -47,7 +42,7 @@ final visibleMatchesProvider = Provider<List<MatchModel>>((ref) {
   Iterable<MatchModel> result = all;
 
   if (scope == MatchViewScope.important) {
-    result = result.where((match) => _isImportantLeague(match.competition));
+    result = result.where((match) => match.isImportant);
   }
 
   switch (category) {
@@ -86,6 +81,13 @@ final todayMatchesProvider = Provider<List<MatchModel>>((ref) {
           m.kickoff.month == today.month &&
           m.kickoff.day == today.day)
       .toList()
+    ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
+});
+
+
+final importantTodayMatchesProvider = Provider<List<MatchModel>>((ref) {
+  final matches = ref.watch(todayMatchesProvider);
+  return matches.where((m) => m.isImportant).toList()
     ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
 });
 

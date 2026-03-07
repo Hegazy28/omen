@@ -25,14 +25,29 @@ class MatchesWidget extends ConsumerWidget {
     final liveMatch = ref.watch(liveMatchProvider);
     final nextMatch = ref.watch(nextBarcaMatchProvider);
     final barcaFixtures = ref.watch(barcaUpcomingProvider);
+    final scope = ref.watch(matchViewScopeProvider);
     final live = ref.watch(liveMatchesProvider);
     final upcoming = ref.watch(upcomingMatchesProvider);
     final finished = ref.watch(finishedMatchesProvider);
     final yesterday = ref.watch(yesterdayMatchesProvider);
+    final importantToday = ref.watch(importantTodayMatchesProvider);
 
     // Barca upcoming = all fixtures except the very next one (already shown
     // in NextMatchCard). Skip if it is today (shown in live hero instead).
     final fixturesExcludingNext = barcaFixtures.skip(1).toList();
+
+    final importantIds = importantToday.map((m) => m.id).toSet();
+    final showImportantSection = scope == MatchViewScope.all && importantToday.isNotEmpty;
+
+    final liveList = showImportantSection
+        ? live.where((m) => !importantIds.contains(m.id)).toList()
+        : live;
+    final upcomingList = showImportantSection
+        ? upcoming.where((m) => !importantIds.contains(m.id)).toList()
+        : upcoming;
+    final finishedList = showImportantSection
+        ? finished.where((m) => !importantIds.contains(m.id)).toList()
+        : finished;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -61,10 +76,11 @@ class MatchesWidget extends ConsumerWidget {
               // ── Right column: Today's matches ──────────
               Expanded(
                 child: _TodayColumn(
-                  live: live,
-                  upcoming: upcoming,
-                  finished: finished,
+                  live: liveList,
+                  upcoming: upcomingList,
+                  finished: finishedList,
                   yesterday: yesterday,
+                  important: showImportantSection ? importantToday : const [],
                 ),
               ),
             ],

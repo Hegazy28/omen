@@ -107,18 +107,25 @@ class SportsrcMatchesService {
     );
 
     final eventId = _extractString(json, const ['id', 'event_id', 'match_id']);
+    final isPopular = _extractBool(json, const ['popular', 'isPopular', 'important']);
+
+    final competition = _competitionFrom(league);
 
     return MatchModel(
       id: eventId.isNotEmpty ? eventId : '${_teamId(homeName)}-${_teamId(awayName)}-${kickoff.millisecondsSinceEpoch}',
       home: home,
       away: away,
-      competition: _competitionFrom(league),
+      competition: competition,
       status: status,
       kickoff: kickoff,
       homeScore: status == MatchStatus.upcoming ? null : score.$1,
       awayScore: status == MatchStatus.upcoming ? null : score.$2,
       isFavouriteMatch:
           homeName.toLowerCase().contains('barcelona') || awayName.toLowerCase().contains('barcelona'),
+      isImportant: isPopular ||
+          homeName.toLowerCase().contains('barcelona') ||
+          awayName.toLowerCase().contains('barcelona') ||
+          competitionIsImportant(competition),
     );
   }
 
@@ -221,6 +228,18 @@ class SportsrcMatchesService {
     return '';
   }
 
+  bool _extractBool(Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      final value = json[key];
+      if (value is bool) return value;
+      if (value == null) continue;
+      final text = value.toString().trim().toLowerCase();
+      if (text == 'true' || text == '1' || text == 'yes') return true;
+      if (text == 'false' || text == '0' || text == 'no') return false;
+    }
+    return false;
+  }
+
   String _extractString(Map<String, dynamic> json, List<String> keys) {
     for (final key in keys) {
       final value = json[key];
@@ -258,6 +277,12 @@ class SportsrcMatchesService {
       return MatchStatus.finished;
     }
     return MatchStatus.upcoming;
+  }
+
+  bool competitionIsImportant(MatchCompetition competition) {
+    return competition == MatchCompetition.laLiga ||
+        competition == MatchCompetition.premierLeague ||
+        competition == MatchCompetition.championsLeague;
   }
 
   MatchCompetition _competitionFrom(String raw) {
